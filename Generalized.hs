@@ -168,6 +168,10 @@ onDot f = undot . f . dot
 -- ------------------------------------------------------------------------
 
 newtype Dual k a b = Dual (b `k` a)
+-- 論文での定義はこれだけど onDot の結果が b -> a なので asDual が論文のように定義
+-- 出来るためには
+-- newtype Dual (k :: * -> * -> *) a b = Dual (b -> a)
+-- という定義でないといけない。
 
 instance Category k => Category (Dual k) where
   type Obj (Dual k) a = Obj k a
@@ -194,6 +198,10 @@ instance Cartesian k => Cocartesian (Dual k) where
 
 instance Scalable k s => Scalable (Dual k) s where
   scale s = Dual (scale s)
+
+-- 前述のように onDot の型が違うので型検査を通らない
+-- asDual :: (Obj k a, Obj k b, HasDot k s a , HasDot k s b) => Cont s k a b -> Dual k a b
+-- asDual (Cont f) = Dual (onDot f)
 
 -- ------------------------------------------------------------------------
 
