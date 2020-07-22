@@ -161,6 +161,10 @@ instance (Cocartesian k, HasDot k s a, HasDot k s b, Obj k (a,b)) => HasDot k s 
   dot (a,b) = dot a ▽ dot b
   undot f = (undot (f . inl), undot (f . inr))
 
+-- 論文では結果の型は b ⊸ a ではなく b → a になってしまう
+onDot :: (HasDot k s a , HasDot k s b) => ((b `k` s) -> (a `k` s)) -> (b -> a)
+onDot f = undot . f . dot
+
 -- ------------------------------------------------------------------------
 
 newtype Dual k a b = Dual (b `k` a)
