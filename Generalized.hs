@@ -169,9 +169,7 @@ onDot f = undot . f . dot
 
 newtype Dual k a b = Dual (b `k` a)
 -- 論文での定義はこれだけど onDot の結果が b -> a なので asDual が論文のように定義
--- 出来るためには
--- newtype Dual (k :: * -> * -> *) a b = Dual (b -> a)
--- という定義でないといけない。
+-- 出来るためには後述の Dual' のような定義でないといけない。
 
 instance Category k => Category (Dual k) where
   type Obj (Dual k) a = Obj k a
@@ -202,6 +200,53 @@ instance Scalable k s => Scalable (Dual k) s where
 -- 前述のように onDot の型が違うので型検査を通らない
 -- asDual :: (Obj k a, Obj k b, HasDot k s a , HasDot k s b) => Cont s k a b -> Dual k a b
 -- asDual (Cont f) = Dual (onDot f)
+
+-- ------------------------------------------------------------------------
+
+newtype Dual' s (k :: * -> * -> *) a b = Dual' (b -> a)
+
+instance (Category k, Obj k s) => Category (Dual' s k) where
+  type Obj (Dual' s k) a = (Obj k a, HasDot k s a)
+  id = Dual' id
+  Dual' g . Dual' f = Dual' (f . g)
+
+instance (Cocartesian k, Obj k s) => Monoidal (Dual' s k) where
+  Dual' f >< Dual' g = Dual' (f >< g)
+
+  monObj :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => ObjR (Dual' s k) (a, b)
+  monObj = case monObj :: ObjR k (a, b) of ObjR -> ObjR
+
+instance (Cartesian k, Cocartesian k, Obj k s, forall a. Additive (k a s)) => Cartesian (Dual' s k) where
+  exl :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k (a, b) a
+  exl = case monObj :: ObjR k (a, b) of
+          ObjR -> asDual' exl
+
+  exr :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k (a, b) b
+  exr = case monObj :: ObjR k (a, b) of
+          ObjR -> asDual' exr
+
+  dup :: forall a. (Obj (Dual' s k) a) => Dual' s k a (a, a)
+  dup = case monObj :: ObjR k (a, a) of
+          ObjR -> asDual' dup
+
+instance (Cartesian k, Cocartesian k, Obj k s, forall a. Additive (k a s)) => Cocartesian (Dual' s k) where
+  inl :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k a (a, b)
+  inl = case monObj :: ObjR k (a, b) of
+          ObjR -> asDual' inl
+
+  inr :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k b (a, b)
+  inr = case monObj :: ObjR k (a, b) of
+          ObjR -> asDual' inr
+
+  jam :: forall a. (Obj (Dual' s k) a) => Dual' s k (a, a) a
+  jam = case monObj :: ObjR k (a, a) of
+          ObjR -> asDual' jam
+
+instance (Scalable k s, HasDot k s s, Num s) => Scalable (Dual' s k) s where
+  scale s = Dual' (scale s)
+
+asDual' :: (Obj (Dual' s k) a, Obj (Dual' s k) b) => Cont s k a b -> Dual' s k a b
+asDual' (Cont f) = Dual' (onDot f)
 
 -- ------------------------------------------------------------------------
 
