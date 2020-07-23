@@ -149,7 +149,7 @@ instance (Category k, Obj k r, Scalable k a) => Scalable (Cont r k) a where
 
 -- ------------------------------------------------------------------------
 
-class (Category k, Obj k s, Num s, Obj k u) => HasDot k s u where
+class (Category k, Obj k s, Obj k u) => HasDot k s u where
   dot :: u -> (u `k` s)
   undot :: (u `k` s) -> u
 
@@ -161,7 +161,7 @@ instance (Cocartesian k, HasDot k s a, HasDot k s b, Obj k (a,b)) => HasDot k s 
   dot (a,b) = dot a ▽ dot b
   undot f = (undot (f . inl), undot (f . inr))
 
--- 論文では結果の型は b ⊸ a ではなく b → a になってしまう
+-- 論文では結果の型は b ⊸ a だったけど b → a になってしまう
 onDot :: (HasDot k s a , HasDot k s b) => ((b `k` s) -> (a `k` s)) -> (b -> a)
 onDot f = undot . f . dot
 
