@@ -104,43 +104,91 @@ instance (Cocartesian k, Obj k r) => Monoidal (Cont r k) where
   monObj :: forall a b. (Obj (Cont r k) a, Obj (Cont r k) b) => ObjR (Cont r k) (a, b)
   monObj = case monObj :: ObjR k (a, b) of ObjR -> ObjR
 
--- 論文だと inl を使っていたが Cocartesian (->) でないので inlF を使う必要
 -- 論文だと instance Cartesian k => Cartesian (Cont r k) だけど、
+-- - 論文で使っていた inl/inr/jam の代わりにinlF/inrF/jamF を使う必要があり、
+--   そのために Additive (k a r) が必要になる。
 -- - join/unjoin のために、 Cartesian k ではなく Cocartesian k が必要。
---   逆に cont を使った定義にしないなら Cartesian k は不要。
--- - 上述の Monoidal の条件として Cocartesian k を追加したので Cocartesian k が必要
--- - inlF/inrF/jamF のために Additive (k a r) が必要。
+--   また上述の Monoidal の条件としても Cocartesian k は必要。
+-- - Cartesian は contを使った定義だと必要だが、現在の定義だと実は不要。
 instance (Cocartesian k, Cartesian k, Obj k r, forall a. Additive (k a r)) => Cartesian (Cont r k) where
   -- exl = Cont (join . inlF)
   exl :: forall a b. (Obj (Cont r k) a, Obj (Cont r k) b) => Cont r k (a, b) a
   exl = case (monObj :: ObjR k (r, r), monObj :: ObjR k (a, b)) of
-          (ObjR, ObjR) -> Cont (join . inlF) -- = cont exl
+          (ObjR, ObjR) -> Cont (join . inlF)
+{-
+If (,) is biproduct in k, then:
+  cont exl
+= Cont (. exl)
+= Cont (\f -> f . exl)
+= Cont (\f -> f . (id ▽ zero))
+= Cont (\f -> f ▽ zero)
+= Cont (\f -> join (f, zero))
+= Cont (join . inF)
+-}
 
   -- exr = Cont (join . inrF)
   exr :: forall a b. (Obj (Cont r k) a, Obj (Cont r k) b) => Cont r k (a, b) b
   exr = case (monObj :: ObjR k (r, r), monObj :: ObjR k (a, b)) of
-          (ObjR, ObjR) -> Cont (join . inrF) -- = cont exr
+          (ObjR, ObjR) -> Cont (join . inrF)
+{-
+If (,) is biproduct in k, then: cont exr = Cont (join . inrF)
+-}
 
   -- dup = Cont (jamF . unjoin)
   dup :: forall a. Obj (Cont r k) a => Cont r k a (a, a)
   dup = case (monObj :: ObjR k (r, r), monObj :: ObjR k (a, a)) of
-          (ObjR, ObjR) -> Cont (jamF . unjoin) -- = cont dup
+          (ObjR, ObjR) -> Cont (jamF . unjoin)
+{-
+If (,) is biproduct in k, then:
+  cont dup
+= Cont (. dup)
+= Cont (\(f :: (a,a) `k` r) -> f . dup)
+= Cont (\(f :: (a,a) `k` r) -> addBP (f . inl) (f . inr))
+= Cont (\(f :: (a,a) `k` r) -> jamF (f . inl, f . inr))
+= Cont (jamF . unjoin)
+-}
 
 instance (Cocartesian k, Obj k r) => Cocartesian (Cont r k) where
   -- inl = Cont (exl . unjoin)
   inl :: forall a b. (Obj (Cont r k) a, Obj (Cont r k) b) => Cont r k a (a, b)
   inl = case (monObj :: ObjR k (r, r), monObj :: ObjR k (a, b)) of
-          (ObjR, ObjR) -> Cont (exl . unjoin) -- = cont inl
+          (ObjR, ObjR) -> Cont (exl . unjoin)
+{-
+  cont inl
+= Cont (. inl)
+= Cont (\(f :: (a, b) `k` r) -> f . inl)
+= Cont (\(f :: (a, b) `k` r) -> exl (f . inl, f . inr))
+= Cont (\(f :: (a, b) `k` r) -> exl (unjoin f))
+= Cont (exl . unjoin)
+-}
 
   -- inr = Cont (exr . unjoin)
   inr :: forall a b. (Obj (Cont r k) a, Obj (Cont r k) b) => Cont r k b (a, b)
   inr = case (monObj :: ObjR k (r, r), monObj :: ObjR k (a, b)) of
-          (ObjR, ObjR) -> Cont (exr . unjoin) -- = cont inr
+          (ObjR, ObjR) -> Cont (exr . unjoin)
+{-
+  cont inr
+= Cont (. inr)
+= Cont (\(f :: (a, b) `k` r) -> f . inr)
+= Cont (\(f :: (a, b) `k` r) -> exr (f . inl, f . inr))
+= Cont (\(f :: (a, b) `k` r) -> exr (unjoin f))
+= Cont (exr . unjoin)
+-}
 
   -- jam = Cont (join . dup)
   jam :: forall a. Obj (Cont r k) a => Cont r k (a, a) a
   jam = case (monObj :: ObjR k (r, r), monObj :: ObjR k (a, a)) of
-          (ObjR, ObjR) -> Cont (join . dup) -- = cont jam
+          (ObjR, ObjR) -> Cont (join . dup)
+{-
+  cont jam
+= Cont (. jam)
+= Cont (\(f :: a `k` r) -> f . jam)
+= Cont (\(f :: a `k` r) -> f . (id ▽ id))
+= Cont (\(f :: a `k` r) -> f ▽ f)
+= Cont (\(f :: a `k` r) -> join (f, f)
+= Cont (\(f :: a `k` r) -> join (dup f))
+= Cont (join . dup)
+-}
 
 -- 論文では instance (Scalable k a) => Scalable (Cont r k) a だったけど、Category k も必要
 instance (Category k, Obj k r, Scalable k a) => Scalable (Cont r k) a where

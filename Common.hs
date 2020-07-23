@@ -92,6 +92,55 @@ unjoin :: forall k a b c. (Monoidal k, Cocartesian k, Obj k a, Obj k b, Obj k c)
 unjoin h = case monObj :: ObjR k (a, b) of
              ObjR -> (h . inl, h . inr)
 
+{-
+If (,) is a biproduct in k, then
+(1) exl = id ▽ zero
+(2) exr = zero ▽ id
+(3) inl = id △ zero
+(4) inr = zero △ id
+
+Proof:
+
+(1)
+  exl :: (a,b) `k` a
+= (exl :: (a,b) `k` a) . (id :: (a,b) `k` (a,b))
+= (exl :: (a,b) `k` a) . ((inl :: a `k` (a,b)) ▽ (inr :: b `k` (a,b)))
+= (exl . inl :: a `k` a) ▽ (exl . inr :: b `k` a)
+= (id :: a `k` a) ▽ (zero :: b `k` a)
+
+(3)
+  inl :: a `k` (a, b)
+= (id :: (a,b) `k` (a,b)) . (inl :: a `k` (a, b))
+= ((exl :: (a,b) `k` a) △ (exr :: (a,b) `k` b)) . (inl :: a `k` (a, b))
+= (exl . inl :: a `k` a) △ (exr . inl :: a `k` b)
+= (id :: a `k` a) △ (zero :: a `k` b)
+-}
+
+zeroBP :: forall k a b. (Cartesian k, Cocartesian k, Obj k a, Obj k b) => (a `k` b)
+zeroBP =
+  case monObj :: ObjR k (a,b) of
+    ObjR -> exr . inl
+
+addBP :: forall k a b. (Cartesian k, Cocartesian k, Obj k a, Obj k b) => (a `k` b) -> (a `k` b) -> (a `k` b)
+addBP f g =
+  case (monObj :: ObjR k (a, a), monObj :: ObjR k (b, b)) of
+    (ObjR, ObjR) -> jam . (f >< g) . dup
+
+{-
+Forall f :: (a, a) `k` b, f . dup = addBP (f . inl) (f . inr).
+
+Proof:
+
+  addBP (f . inl) (f . inr)
+= jam . ((f . inl) >< (f . inr)) . dup
+= (id ▽ id) . ((f . inl) >< (f . inr)) . dup
+= ((f . inl) ▽ (f . inr)) . dup
+= f . (inl ▽ inr) . dup
+= f . dup
+-}
+
+-- ------------------------------------------------------------------------
+
 class (Category k, Obj k a) => Scalable k a where
   scale :: a -> (a `k` a)
 
@@ -171,12 +220,6 @@ instance (Additive a, Num a) => Scalable (->⁺) a where
 
 -- 論文では抜けていた(?)定義
 -- Cartesian (Cont r k) を inlF/inrF/jamF を使って定義するには必要
-{-
-instance Additive r => Additive (a ->⁺ r) where
-  zero = AddFun (\_ -> zero)
-  AddFun f .+. AddFun g = AddFun (\x -> f x .+. g x)
--}
 instance (Obj (->⁺) a, Obj (->⁺) b) => Additive (a ->⁺ b) where
-  zero = exr . inl
-  f .+. g = jam . (f >< g) . dup
-
+  zero = zeroBP
+  (.+.) = addBP
