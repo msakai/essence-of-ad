@@ -197,7 +197,7 @@ instance (Category k, Obj k r, Scalable k a) => Scalable (Cont r k) a where
 
 -- ------------------------------------------------------------------------
 
-class (Category k, Obj k s, Obj k u) => HasDot k s u where
+class (Category k, Obj k s, Obj k u, Additive u) => HasDot k s u where
   dot :: u -> (u `k` s)
   undot :: (u `k` s) -> u
 
@@ -265,30 +265,91 @@ instance (Cocartesian k, Obj k s) => Monoidal (Dual' s k) where
   monObj = case monObj :: ObjR k (a, b) of ObjR -> ObjR
 
 instance (Cartesian k, Cocartesian k, Obj k s, forall a. Additive (k a s)) => Cartesian (Dual' s k) where
-  exl :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k (a, b) a
-  exl = case monObj :: ObjR k (a, b) of
-          ObjR -> asDual' exl
+  -- exl :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k (a, b) a
+  exl = Dual' inlF
+{-
+  asDual' exl
+= asDual' (Cont (join . inlF))
+= Dual' (undot . join . inlF . dot)
+= {- naturality of inlF -}
+  Dual' (undot . join . (dot >< dot) . inlF)
+= Dual' (undot . (\(a,b) -> join ((dot >< dot) (a,b))) . inlF)
+= Dual' (undot . (\(a,b) -> join (dot a, dot b)) . inlF)
+= Dual' (undot . (\(a,b) -> dot a ▽ dot b) . inlF)
+= {- definition of dot (a,b) -}
+  Dual' (undot . (\(a,b) -> dot (a,b)) . inlF)
+= Dual' (undot . dot . inlF)
+= Dual' (id . inlF)
+= Dual' inlF
+-}
 
   exr :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k (a, b) b
-  exr = case monObj :: ObjR k (a, b) of
-          ObjR -> asDual' exr
+  exr = Dual' inrF
+{-
+Similarly, asDual' exr = Dual' inrF
+-}
 
   dup :: forall a. (Obj (Dual' s k) a) => Dual' s k a (a, a)
-  dup = case monObj :: ObjR k (a, a) of
-          ObjR -> asDual' dup
+  dup = Dual' jamF
+{-
+  asDual' dup
+= asDual' (Cont (jamF . unjoin))
+= Dual' (undot . jamF . unjoin . dot)
+= {- naturality of jamF -}
+  Dual' (jamF . (undot >< undot) . unjoin . dot)
+= Dual' (jamF . (\h -> (undot >< undot) (unjoin h)) . dot)
+= Dual' (jamF . (\h -> (undot >< undot) (h . inl, h . inr)) . dot)
+= Dual' (jamF . (\h -> (undot (h . inl), undot (h . inr)) . dot)
+= {- definition of undot h -}
+  Dual' (jamF . (\h -> undot h) . dot)
+= Dual' (jamF . undot . dot)
+= Dual' (jamF . id)
+= Dual' jamF
+-}
 
 instance (Cartesian k, Cocartesian k, Obj k s, forall a. Additive (k a s)) => Cocartesian (Dual' s k) where
   inl :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k a (a, b)
   inl = case monObj :: ObjR k (a, b) of
           ObjR -> asDual' inl
+{-
+  asDual' inl
+= asDual' Cont (exl . unjoin)
+= Dual (undot . exl . unjoin . dot)
+= {- naturality of exl -}
+  Dual (exl . (undot >< undot) . unjoin . dot)
+= Dual (exl . (\h -> (undot >< undot) (unjoin h)) . dot)
+= Dual (exl . (\h -> (undot >< undot) (h . inl, h . inr)) . dot)
+= Dual (exl . (\h -> (undot (h . inl), undot (h . inr))) . dot)
+= {- definition of undot h -}
+  Dual (exl . (\h -> undot h) . dot)
+= Dual (exl . undot . dot)
+= Dual (exl . id)
+= Dual exl
+-}
 
   inr :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k b (a, b)
-  inr = case monObj :: ObjR k (a, b) of
-          ObjR -> asDual' inr
+  inr = Dual' exr
+{-
+Similarly, asDual' inr = Dual' exr
+-}
 
   jam :: forall a. (Obj (Dual' s k) a) => Dual' s k (a, a) a
-  jam = case monObj :: ObjR k (a, a) of
-          ObjR -> asDual' jam
+  jam = Dual' dup
+{-
+  asDual' jam
+= asDual' (Cont (join . dup))
+= Dual' (undot . join . dup . dot)
+= {- naturality of dup -}
+  Dual' (undot . join . (dot >< dot) . dup)
+= Dual' (undot . (\(a,b) -> join ((dot >< dot) (a,b))) . dup)
+= Dual' (undot . (\(a,b) -> join (dot a, dot b)) . dup)
+= Dual' (undot . (\(a,b) -> (dot a ▽ dot b)) . dup)
+= {- definition of dot (a,b) -}
+  Dual' (undot . (\(a,b) -> dot (a,b)) . dup)
+= Dual' (undot . dot . dup)
+= Dual' (id . dup)
+= Dual' dup
+-}
 
 instance (Scalable k s, HasDot k s s, Num s) => Scalable (Dual' s k) s where
   scale s = Dual' (scale s)
