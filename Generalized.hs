@@ -222,7 +222,12 @@ instance (Cocartesian k, Obj k r) => Cocartesian (Cont r k) where
 -- 論文では instance (Scalable k a) => Scalable (Cont r k) a だったけど、Category k も必要
 instance (Category k, Obj k r, Scalable k a) => Scalable (Cont r k) a where
   -- 論文では scale s = Cont (scale s) だったけど型が合わない
-  scale s = cont (scale s)
+  scale a = cont (scale a)
+{-
+  cont (scale a)
+= Cont (. scale a)
+= Cont (. scale a)
+-}
 
 -- ------------------------------------------------------------------------
 
@@ -271,8 +276,9 @@ instance Cartesian k => Cocartesian (Dual k) where
   inr = Dual exr
   jam = Dual dup
 
-instance Scalable k s => Scalable (Dual k) s where
-  scale s = Dual (scale s)
+-- 論文では Scalable k => Scalable (Dual k) となっているがそれは間違い
+instance Scalable k a => Scalable (Dual k) a where
+  scale a = Dual (scale a)
 
 -- 前述のように onDot の型が違うので型検査を通らない
 -- asDual :: (Obj k a, Obj k b, HasDot k s a , HasDot k s b) => Cont s k a b -> Dual k a b
@@ -398,8 +404,17 @@ Similarly, asDual' inr = Dual' exr
 = Dual' dup
 -}
 
-instance (Scalable k s, HasDot k s s, Num s) => Scalable (Dual' s k) s where
-  scale s = Dual' (scale s)
+instance (Obj (Dual' s k) a, Scalable k a, Num a) => Scalable (Dual' s k) a where
+  scale a = asDual' (scale a)
+{-
+  asDual' (scale a)
+= asDual' (Cont (. scale a))
+= Dual' (undot . (. scale a) . dot)
+= {- これは成り立つ? -}
+  Dual' (undot . dot . scale a)
+= Dual' (id . scale a)
+= Dual' (scale a)
+-}
 
 asDual' :: (Obj (Dual' s k) a, Obj (Dual' s k) b) => Cont s k a b -> Dual' s k a b
 asDual' (Cont f) = Dual' (onDot f)
