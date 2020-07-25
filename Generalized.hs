@@ -140,7 +140,7 @@ instance (Cocartesian k, Obj k r) => Monoidal (Cont r k) where
 --   また上述の Monoidal の条件としても Cocartesian k は必要。
 -- - Cartesian は contを使った定義だと必要だが、現在の定義だと実は不要。
 instance (Cocartesian k, Cartesian k, Obj k r, forall a. Additive (k a r)) => Cartesian (Cont r k) where
-  -- exl = Cont (join . inlF)
+  -- exl = Cont (join . inl)
   exl :: forall a b. (Obj (Cont r k) a, Obj (Cont r k) b) => Cont r k (a, b) a
   exl = case (monObj :: ObjR k (r, r), monObj :: ObjR k (a, b)) of
           (ObjR, ObjR) -> Cont (join . inlF)
@@ -155,7 +155,7 @@ If (,) is biproduct in k, then:
 = Cont (join . inF)
 -}
 
-  -- exr = Cont (join . inrF)
+  -- exr = Cont (join . inr)
   exr :: forall a b. (Obj (Cont r k) a, Obj (Cont r k) b) => Cont r k (a, b) b
   exr = case (monObj :: ObjR k (r, r), monObj :: ObjR k (a, b)) of
           (ObjR, ObjR) -> Cont (join . inrF)
@@ -163,7 +163,7 @@ If (,) is biproduct in k, then:
 If (,) is biproduct in k, then: cont exr = Cont (join . inrF)
 -}
 
-  -- dup = Cont (jamF . unjoin)
+  -- dup = Cont (jam . unjoin)
   dup :: forall a. Obj (Cont r k) a => Cont r k a (a, a)
   dup = case (monObj :: ObjR k (r, r), monObj :: ObjR k (a, a)) of
           (ObjR, ObjR) -> Cont (jamF . unjoin)
