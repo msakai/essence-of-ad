@@ -265,7 +265,11 @@ instance (Cocartesian k, Obj k s) => Monoidal (Dual' s k) where
   monObj = case monObj :: ObjR k (a, b) of ObjR -> ObjR
 
 instance (Cartesian k, Cocartesian k, Obj k s, forall a. Additive (k a s)) => Cartesian (Dual' s k) where
-  -- exl :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k (a, b) a
+{-
+  exl :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k (a, b) a
+  exl = case monObj :: ObjR k (a, b) of
+          ObjR -> asDual' exl
+-}
   exl = Dual' inlF
 {-
   asDual' exl
@@ -283,7 +287,11 @@ instance (Cartesian k, Cocartesian k, Obj k s, forall a. Additive (k a s)) => Ca
 = Dual' inlF
 -}
 
+{-
   exr :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k (a, b) b
+  exr = case monObj :: ObjR k (a, b) of
+          ObjR -> asDual' exr
+-}
   exr = Dual' inrF
 {-
 Similarly, asDual' exr = Dual' inrF
@@ -308,32 +316,42 @@ Similarly, asDual' exr = Dual' inrF
 -}
 
 instance (Cartesian k, Cocartesian k, Obj k s, forall a. Additive (k a s)) => Cocartesian (Dual' s k) where
+{-
   inl :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k a (a, b)
   inl = case monObj :: ObjR k (a, b) of
           ObjR -> asDual' inl
+-}
+  inl = Dual' exl
 {-
   asDual' inl
 = asDual' Cont (exl . unjoin)
-= Dual (undot . exl . unjoin . dot)
+= Dual' (undot . exl . unjoin . dot)
 = {- naturality of exl -}
-  Dual (exl . (undot >< undot) . unjoin . dot)
-= Dual (exl . (\h -> (undot >< undot) (unjoin h)) . dot)
-= Dual (exl . (\h -> (undot >< undot) (h . inl, h . inr)) . dot)
-= Dual (exl . (\h -> (undot (h . inl), undot (h . inr))) . dot)
+  Dual' (exl . (undot >< undot) . unjoin . dot)
+= Dual' (exl . (\h -> (undot >< undot) (unjoin h)) . dot)
+= Dual' (exl . (\h -> (undot >< undot) (h . inl, h . inr)) . dot)
+= Dual' (exl . (\h -> (undot (h . inl), undot (h . inr))) . dot)
 = {- definition of undot h -}
-  Dual (exl . (\h -> undot h) . dot)
-= Dual (exl . undot . dot)
-= Dual (exl . id)
-= Dual exl
+  Dual' (exl . (\h -> undot h) . dot)
+= Dual' (exl . undot . dot)
+= Dual' (exl . id)
+= Dual' exl
 -}
 
+{-
   inr :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k b (a, b)
+  inr = case monObj :: ObjR k (a, b) of
+          ObjR -> asDual' inr
+-}
   inr = Dual' exr
 {-
 Similarly, asDual' inr = Dual' exr
 -}
 
+{-
   jam :: forall a. (Obj (Dual' s k) a) => Dual' s k (a, a) a
+  jam = asDual' jam 
+-}
   jam = Dual' dup
 {-
   asDual' jam
