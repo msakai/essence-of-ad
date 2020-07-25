@@ -88,8 +88,22 @@ cont f = Cont (. f)
 
 instance (Category k, Obj k r) => Category (Cont r k) where
   type Obj (Cont r k) a = Obj k a
+
   id = Cont id
+{-
+  cont id = Cont (. id) = Cont id
+-}
+
   Cont g . Cont f = Cont (f . g)
+{-
+  Cont (. g) . Cont (. f)
+= cont g . cont f
+= {- cont is expected to be a functor -}
+  cont (g . f)
+= Cont (. (g . f))
+= Cont (\h -> h . g . f)
+= Cont ((. f) . (. g))
+-}
 
 -- 論文だと instance Monoidal k => Monoidal (Cont r k) だけど、
 -- join/unjoin を使っているので Cocartesian k が必要
@@ -100,6 +114,21 @@ instance (Cocartesian k, Obj k r) => Monoidal (Cont r k) where
   Cont f >< Cont g =
     case (monObj :: ObjR k (a, c), monObj :: ObjR k (b, d), monObj :: ObjR k (r, r)) of
       (ObjR, ObjR, ObjR) -> Cont (join . (f >< g) . unjoin)
+{-
+  Cont (. f) >< Cont (. g)
+= cont f >< cont g
+= {- cont is expected to preserve (><) -}
+  cont (f >< g)
+= Cont (. (f >< g))
+= Cont (\(h :: (b,d) `k` r) -> h . (f >< g))
+= Cont (\(h :: (b,d) `k` r) -> ((h . inl) ▽ (h . inr)) . (f >< g))
+= Cont (\(h :: (b,d) `k` r) -> (h . inl . f) ▽ (h . inr . g))
+= Cont (\(h :: (b,d) `k` r) -> join (h . inl . f, h . inr . g))
+= Cont (join . (\(h :: (b,d) `k` r) -> (h . inl . f, h . inr . g)))
+= Cont (join . (\(h :: (b,d) `k` r) -> (h . inl . f, h . inr . g)))
+= Cont (join . (\(h1, h2) -> (h1 . f, h2 . g)) . unjoin)
+= Cont (join . ((. f) >< (. g)) . unjoin)
+-}
 
   monObj :: forall a b. (Obj (Cont r k) a, Obj (Cont r k) b) => ObjR (Cont r k) (a, b)
   monObj = case monObj :: ObjR k (a, b) of ObjR -> ObjR
