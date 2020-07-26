@@ -298,11 +298,46 @@ newtype Dual' s (k :: * -> * -> *) a b = Dual' (b -> a)
 
 instance (Category k, Obj k s) => Category (Dual' s k) where
   type Obj (Dual' s k) a = (Obj k a, HasDot k s a)
+
   id = Dual' id
+{-
+  asDual' id
+= asDual' (Cont id)
+= Dual' (undot . id . dot)
+= Dual' id
+-}
+
   Dual' g . Dual' f = Dual' (f . g)
+{-
+  Dual' (undot . g . dot) . Dual' (undot . f . dot)
+= asDual' (Cont g) . asDual' (Cont f)
+= {- asDual' is expected to be a functor -}
+  asDual' (Cont g . Cont f)
+= asDual' (Cont (f . g))
+= Dual' (undot . f . g . dot)
+= Dual' (undot . f . id .  g . dot)
+= Dual' (undot . f . (dot . undot) .  g . dot)
+= Dual' ((undot . f . dot) . (undot . g . dot))
+-}
 
 instance (Cocartesian k, Obj k s) => Monoidal (Dual' s k) where
   Dual' f >< Dual' g = Dual' (f >< g)
+{-
+  Dual' (undot . f . dot) >< Dual' (undot . g . dot)
+= asDual' (Cont f) >< asDual' (Cont g)
+= {- asDual' is expected to preserve (><) -}
+  asDual' (Cont f >< Cont g)
+= asDual' (Cont (join . (f >< g) . unjoin))
+= Dual' (undot . join . (f >< g) . unjoin . dot)
+= Dual' (undot . join . (f >< g) . unjoin . (\(a,b) -> dot a ▽ dot b))
+= Dual' (undot . join . (f >< g) . unjoin . join . (dot >< dot))
+= Dual' (undot . join . (f >< g) . (dot >< dot))
+= Dual' ((\(f,g) -> undot (f ▽ g)) . (f >< g) . (dot >< dot))
+= Dual' ((\(f,g) -> (undot f, undot g)) . (f >< g) . (dot >< dot))
+= Dual' ((undot >< undot) . (f >< g) . (dot >< dot))
+= Dual' ((undot >< undot) . (f >< g) . (dot >< dot))
+= Dual' ((undot . f . dot) >< (undot . g . dot))
+-}
 
   monObj :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => ObjR (Dual' s k) (a, b)
   monObj = case monObj :: ObjR k (a, b) of ObjR -> ObjR
