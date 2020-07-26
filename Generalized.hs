@@ -226,7 +226,6 @@ instance (Category k, Obj k r, Scalable k a) => Scalable (Cont r k) a where
 {-
   cont (scale a)
 = Cont (. scale a)
-= Cont (. scale a)
 -}
 
 -- ------------------------------------------------------------------------
