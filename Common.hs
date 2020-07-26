@@ -201,6 +201,18 @@ instance Cartesian (->⁺) where
   exr = AddFun exr
   dup = AddFun dup
 
+{-
+h (a,b) = a * b のような関数を考えると、
+AddFun h . inl = AddFun (const 0)
+AddFun h . inr = AddFun (const 0)
+かつ
+AddFun (const 0) . inl = AddFun (const 0)
+AddFun (const 0) . inr = AddFun (const 0)
+だが
+AddFun h ≠ AddFun (const 0)
+なので直和の不変性を満たさない。
+なので、本当は射を制限した圏を考える必要がある。
+-}
 instance Cocartesian (->⁺) where
   inl = AddFun inlF
   inr = AddFun inrF
