@@ -448,7 +448,7 @@ Similarly, asDual' inr = Dual' exr
 -}
 
 instance (Obj (Dual' s k) a, Scalable k a, Num a) => Scalable (Dual' s k) a where
-  scale a = asDual' (scale a)
+  scale a = Dual' (scale a)
 {-
   asDual' (scale a)
 = asDual' (Cont (. scale a))
