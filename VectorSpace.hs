@@ -104,6 +104,20 @@ instance Cocartesian (LinMap s) where
       f (Left ba) = basisValue ba
       f (Right bb) = basisValue bb
 
+test_LinMap_VectorSpace = m
+  where
+    f :: LinMap Double (Double, Double) (Double, Double)
+    f = LinMap f'
+      where
+        f' (Left _) = (1, 2)
+        f' (Right _) = (3, 4)
+    m = decompose f
+{-
+(1 3)
+(2 4)
+という行列
+-}
+
 -- ------------------------------------------------------------------------
 
 -- | Dual vector space
@@ -198,9 +212,7 @@ uncurry (LinMap f) = LinMap g
 
 mapTensor
   :: forall a b c d s.
-     ( VectorSpace a, VectorSpace b, VectorSpace c, VectorSpace d
-     , Scalar a ~ s, Scalar b ~ s, Scalar c ~ s, Scalar d ~ s
-     )
+     (VectorSpace a, VectorSpace b, VectorSpace c, VectorSpace d, Scalar a ~ s, Scalar b ~ s, Scalar c ~ s, Scalar d ~ s)
   => LinMap s a b -> LinMap s c d -> LinMap s (a :⊗ c) (b :⊗ d)
 mapTensor (LinMap f) (LinMap g) = LinMap h
   where
@@ -213,3 +225,14 @@ mapTensor (LinMap f) (LinMap g) = LinMap h
         m2 = decompose (g bc)
         m :: Map (Basis (b :⊗ d)) s
         m = Map.fromList [((bb,bd), s1*s2) | (bb, s1) <- Map.toList m1, (bd, s2) <- Map.toList m2]
+
+TensorProd test_Tensor = asFun h t
+  where
+    f, g :: LinMap Double Double Double
+    f = LinMap (const 2)
+    g = LinMap (const 3)
+    h :: LinMap Double (Double :⊗ Double) (Double :⊗ Double)
+    h = mapTensor f g
+
+    t :: Double :⊗ Double
+    t = TensorProd (Map.singleton ((),()) 4)
