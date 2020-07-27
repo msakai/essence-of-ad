@@ -68,6 +68,16 @@ instance Additive b => Additive (LinMap s a b) where
   zero = LinMap (const zero)
   LinMap f .+. LinMap g = LinMap (\x -> f x .+. g x)
 
+instance (VectorSpace a, VectorSpace b, Scalar a ~ s, Scalar b ~ s) => VectorSpace (LinMap s a b) where
+  type Scalar (LinMap s a b) = s
+  type Basis (LinMap s a b) = (Basis a, Basis b)
+  scale s (LinMap f) = LinMap (scale s . f)
+  decompose (LinMap f) = Map.fromList $ do
+    (ba, _) <- Map.toList $ decompose (zero :: a)
+    (bb, s) <- Map.toList $ decompose (f ba)
+    return ((ba,bb), s)
+  basisValue (ba,bb) = LinMap (\ba' -> if ba == ba' then basisValue bb else zero)
+
 instance Monoidal (LinMap s) where
   LinMap f >< LinMap g = LinMap h
     where
