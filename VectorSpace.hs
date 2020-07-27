@@ -174,7 +174,10 @@ instance (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => VectorSpace (a :
   type Basis (a :⊗ b) = (Basis a, Basis b)
   scale s (TensorProd m) = TensorProd $ Map.map (*s) m
   decompose (TensorProd m) = m
-  basisValue (ba,bb) = TensorProd $ Map.singleton (ba,bb) 1
+  basisValue bab = TensorProd $ Map.fromList $ do
+    (ba,_) <- Map.toList $ decompose (zero :: a)
+    (bb,_) <- Map.toList $ decompose (zero :: b)
+    return ((ba,bb), if (ba,bb) == bab then 1 else 0)
 
 curry
   :: forall a b c s. (VectorSpace a, VectorSpace b, VectorSpace c, Scalar a ~ s, Scalar b ~ s, Scalar c ~ s)
