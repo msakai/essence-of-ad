@@ -12,6 +12,8 @@ import Data.Maybe
 
 import Common hiding (Scalable (..))
 
+-- ------------------------------------------------------------------------
+
 class (Fractional (Scalar a), Eq (Basis a), Additive a) => VectorSpace a where
   type Scalar a
   type Basis a
@@ -82,10 +84,55 @@ instance Cocartesian (LinMap s) where
       f (Left a) = basisValue a
       f (Right b) = basisValue b
 
-toDual :: (VectorSpace a) => a -> LinMap (Scalar a) a (Scalar a)
-toDual a = LinMap (\x -> fromMaybe 0 (lookup x m))
+-- ------------------------------------------------------------------------
+
+-- | Dual vector space
+newtype Dual a = Dual (LinMap (Scalar a) a (Scalar a))
+
+-- Scalar a について Additive ではなく Num で計算しているので注意
+instance VectorSpace a => Additive (Dual a) where
+  zero = Dual (LinMap (const 0))
+  Dual (LinMap f) .+. Dual (LinMap g) = Dual $ LinMap (\x -> f x + g x)
+
+instance VectorSpace a => VectorSpace (Dual a) where
+  type Scalar (Dual a) = Scalar a
+  type Basis (Dual a) = Basis a
+  scale s (Dual (LinMap f)) = Dual (LinMap ((s*) . f))
+  decompose (Dual (LinMap f)) = [(x, f x) | (x, _) <- decompose (zero :: a)]
+  basisValue b = Dual (LinMap (\b' -> if b == b' then 1 else 0))
+
+toDual :: VectorSpace a => a -> Dual a
+toDual a = Dual $ LinMap $ \x -> fromMaybe 0 (lookup x m)
   where
     m = decompose a
 
-fromDual :: forall a. VectorSpace a => LinMap (Scalar a) a (Scalar a) -> a
-fromDual (LinMap f) = foldl' (.+.) zero [scale (f x) (basisValue x) | (x, _) <- decompose (zero :: a)]
+toDualMap :: forall a b s. (VectorSpace a, VectorSpace b, Scalar a ~ s, Scalar b ~ s) => LinMap s a b -> LinMap s (Dual b) (Dual a)
+toDualMap (LinMap f) = LinMap g
+  where
+    -- f :: Basis a -> b
+    g :: Basis (Dual b) -> Dual a
+    g b' = Dual (LinMap h)
+      where
+        h :: Basis a -> s
+        h a = sum [s | (b :: Basis b, s) <- decompose (f a), b == b']
+
+fromDual :: forall a. VectorSpace a => Dual a -> a
+fromDual (Dual (LinMap f)) = compose [(x, f x) | (x, _) <- decompose (zero :: a)]
+
+fromDualMap :: forall a b s. (VectorSpace a, VectorSpace b, Scalar a ~ s, Scalar b ~ s) => LinMap s (Dual b) (Dual a) -> LinMap s a b
+fromDualMap (LinMap f) = LinMap g
+  where
+    -- f :: Basis (Dual b) -> Dual a    
+    g :: Basis a -> b
+    g a = compose [(b, h a) | (b, _) <- decompose (zero :: b), let Dual (LinMap (h :: Basis a -> s)) = f b]
+
+-- ------------------------------------------------------------------------
+
+test = (asFun f (2,1) == 7, asFun f2 (2,1) == 7)
+  where
+    f :: LinMap Double (Double, Double) Double
+    f = LinMap f'
+      where
+        f' (Left _) = 2
+        f' (Right _) = 3
+    f2 = fromDualMap (toDualMap f)
