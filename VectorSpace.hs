@@ -47,6 +47,14 @@ instance (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => VectorSpace (a, 
 -- ------------------------------------------------------------------------
 
 newtype LinMap s a b = LinMap (Basis a -> b)
+{-
+infixr 0 ⊸
+
+data a ⊸ b where
+  LinMap :: (Scalar a ~ Scalar b) => !(Basis a -> b) -> a ⊸ b
+
+と書けると格好良いが、スカラー型の異なるベクトル空間の直積とかで困ったことになる。
+-}
 
 asFun :: (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => (LinMap s a b) -> (a -> b)
 asFun (LinMap f) a = linComb [(f ba, s) | (ba,s) <- Map.toList (decompose a)]
