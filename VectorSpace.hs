@@ -27,7 +27,7 @@ linComb :: VectorSpace a => [(a, Scalar a)] -> a
 linComb xs = foldl' (.+.) zero [scale s a | (a,s) <- xs]
 
 compose :: VectorSpace a => Map (Basis a) (Scalar a) -> a
-compose xs = linComb [(basisValue a, s) | (a,s) <- Map.toList xs]
+compose m = linComb [(basisValue ba, s) | (ba,s) <- Map.toList m]
 
 instance VectorSpace Double where
   type Scalar Double = Double
@@ -41,15 +41,15 @@ instance (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => VectorSpace (a, 
   type Basis (a, b) = Either (Basis a) (Basis b)
   scale s (a,b) = (scale s a, scale s b)
   decompose (a,b) = Map.mapKeysMonotonic Left (decompose a) `Map.union` Map.mapKeysMonotonic Right (decompose b)
-  basisValue (Left x) = (basisValue x, zero)
-  basisValue (Right x) = (zero, basisValue x)
+  basisValue (Left ba) = (basisValue ba, zero)
+  basisValue (Right bb) = (zero, basisValue bb)
 
 -- ------------------------------------------------------------------------
 
 newtype LinMap s a b = LinMap (Basis a -> b)
 
 asFun :: (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => (LinMap s a b) -> (a -> b)
-asFun (LinMap f) x = linComb [(f b, s) | (b,s) <- Map.toList (decompose x)]
+asFun (LinMap f) a = linComb [(f ba, s) | (ba,s) <- Map.toList (decompose a)]
 
 instance Category (LinMap s) where
   type Obj (LinMap s) a = (VectorSpace a, Scalar a ~ s)
@@ -63,28 +63,28 @@ instance Additive b => Additive (LinMap s a b) where
 instance Monoidal (LinMap s) where
   LinMap f >< LinMap g = LinMap h
     where
-      h (Left a) = (f a, zero)
-      h (Right b) = (zero, g b)
+      h (Left ba) = (f ba, zero)
+      h (Right bb) = (zero, g bb)
   monObj = ObjR
 
 instance Cartesian (LinMap s) where
   exl = LinMap f
     where
-      f (Left a) = basisValue a
-      f (Right _b) = zero
+      f (Left ba) = basisValue ba
+      f (Right _bb) = zero
   exr = LinMap f
     where
-      f (Left _a) = zero
-      f (Right b) = basisValue b
-  dup = LinMap (\a -> (basisValue a, basisValue a))
+      f (Left _ba) = zero
+      f (Right bb) = basisValue bb
+  dup = LinMap (\ba -> (basisValue ba, basisValue ba))
 
 instance Cocartesian (LinMap s) where
-  inl = LinMap (\a -> (basisValue a, zero))
-  inr = LinMap (\b -> (zero, basisValue b))
+  inl = LinMap (\ba -> (basisValue ba, zero))
+  inr = LinMap (\bb -> (zero, basisValue bb))
   jam = LinMap f
     where
-      f (Left a) = basisValue a
-      f (Right b) = basisValue b
+      f (Left ba) = basisValue ba
+      f (Right bb) = basisValue bb
 
 -- ------------------------------------------------------------------------
 
@@ -94,17 +94,17 @@ newtype Dual a = Dual (LinMap (Scalar a) a (Scalar a))
 -- Scalar a について Additive ではなく Num で計算しているので注意
 instance VectorSpace a => Additive (Dual a) where
   zero = Dual (LinMap (const 0))
-  Dual (LinMap f) .+. Dual (LinMap g) = Dual $ LinMap (\x -> f x + g x)
+  Dual (LinMap f) .+. Dual (LinMap g) = Dual $ LinMap (\ba -> f ba + g ba)
 
 instance VectorSpace a => VectorSpace (Dual a) where
   type Scalar (Dual a) = Scalar a
   type Basis (Dual a) = Basis a
   scale s (Dual (LinMap f)) = Dual (LinMap ((s*) . f))
-  decompose (Dual (LinMap f)) = Map.mapWithKey (\x _ -> f x) $ decompose (zero :: a)
-  basisValue b = Dual (LinMap (\b' -> if b == b' then 1 else 0))
+  decompose (Dual (LinMap f)) = Map.mapWithKey (\ba _ -> f ba) $ decompose (zero :: a)
+  basisValue ba = Dual (LinMap (\ba' -> if ba == ba' then 1 else 0))
 
 toDual :: VectorSpace a => a -> Dual a
-toDual a = Dual $ LinMap $ \x -> Map.findWithDefault 0 x m
+toDual a = Dual $ LinMap $ \ba -> Map.findWithDefault 0 ba m
   where
     m = decompose a
 
@@ -113,20 +113,20 @@ toDualMap (LinMap f) = LinMap g
   where
     -- f :: Basis a -> b
     g :: Basis (Dual b) -> Dual a
-    g b = Dual (LinMap h)
+    g bb = Dual (LinMap h)
       where
         h :: Basis a -> s
-        h = Map.findWithDefault 0 b . decompose . f
+        h = Map.findWithDefault 0 bb . decompose . f
 
 fromDual :: forall a. VectorSpace a => Dual a -> a
-fromDual (Dual (LinMap f)) = compose $ Map.mapWithKey (\x _ -> f x) $ decompose (zero :: a)
+fromDual (Dual (LinMap f)) = compose $ Map.mapWithKey (\ba _ -> f ba) $ decompose (zero :: a)
 
 fromDualMap :: forall a b s. (VectorSpace a, VectorSpace b, Scalar a ~ s, Scalar b ~ s) => LinMap s (Dual b) (Dual a) -> LinMap s a b
 fromDualMap (LinMap f) = LinMap g
   where
     -- f :: Basis (Dual b) -> Dual a    
     g :: Basis a -> b
-    g a = compose $ Map.mapWithKey (\b _ -> let Dual (LinMap (h :: Basis a -> s)) = f b in h a) $ decompose (zero :: b)
+    g ba = compose $ Map.mapWithKey (\bb _ -> let Dual (LinMap (h :: Basis a -> s)) = f bb in h ba) $ decompose (zero :: b)
 
 -- ------------------------------------------------------------------------
 
@@ -146,9 +146,9 @@ data a :⊗ b where
 
 instance (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => Additive (a :⊗ b) where
   zero = TensorProd $ Map.fromList $ do
-    (a, _) <- Map.toList $ decompose (zero :: a)
-    (b, _) <- Map.toList $ decompose (zero :: b)
-    return ((a,b), 0)
+    (ba, _) <- Map.toList $ decompose (zero :: a)
+    (bb, _) <- Map.toList $ decompose (zero :: b)
+    return ((ba,bb), 0)
   TensorProd m1 .+. TensorProd m2 = TensorProd $ Map.unionWith (+) m1 m2
 
 instance (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => VectorSpace (a :⊗ b) where
@@ -156,7 +156,7 @@ instance (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => VectorSpace (a :
   type Basis (a :⊗ b) = (Basis a, Basis b)
   scale s (TensorProd m) = TensorProd $ Map.map (*s) m
   decompose (TensorProd m) = m
-  basisValue ab = TensorProd $ Map.singleton ab 1
+  basisValue (ba,bb) = TensorProd $ Map.singleton (ba,bb) 1
 
 curry
   :: forall a b c s. (VectorSpace a, VectorSpace b, VectorSpace c, Scalar a ~ s, Scalar b ~ s, Scalar c ~ s)
