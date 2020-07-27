@@ -19,6 +19,12 @@ class (Fractional (Scalar a), Eq (Basis a), Additive a) => VectorSpace a where
   decompose :: a -> [(Basis a, Scalar a)]
   basisValue :: Basis a -> a
 
+linComb :: VectorSpace a => [(a, Scalar a)] -> a
+linComb xs = foldl' (.+.) zero [scale s a | (a,s) <- xs]
+
+compose :: VectorSpace a => [(Basis a, Scalar a)] -> a
+compose xs = linComb [(basisValue a, s) | (a,s) <- xs]
+
 instance VectorSpace Double where
   type Scalar Double = Double
   type Basis Double = ()
@@ -34,16 +40,17 @@ instance (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => VectorSpace (a, 
   basisValue (Left x) = (basisValue x, zero)
   basisValue (Right x) = (zero, basisValue x)
 
+-- ------------------------------------------------------------------------
 
 newtype LinMap s a b = LinMap (Basis a -> b)
 
 asFun :: (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => (LinMap s a b) -> (a -> b)
-asFun (LinMap f) x = foldl' (.+.) zero [scale s (f b) | (b,s) <- decompose x]
+asFun (LinMap f) x = linComb [(f b, s) | (b,s) <- decompose x]
 
 instance Category (LinMap s) where
   type Obj (LinMap s) a = (VectorSpace a, Scalar a ~ s)
   id = LinMap basisValue
-  LinMap g . LinMap f = LinMap (\x -> foldl' (.+.) zero [scale s (g y) | (y,s) <- decompose (f x)])
+  g . LinMap f = LinMap (asFun g . f)
 
 instance Additive b => Additive (LinMap s a b) where
   zero = LinMap (const zero)
