@@ -129,7 +129,7 @@ fromDualMap (LinMap f) = LinMap g
 
 -- ------------------------------------------------------------------------
 
-test = (asFun f (2,1) == 7, asFun f2 (2,1) == 7)
+testDual = (asFun f (2,1) == 7, asFun f2 (2,1) == 7)
   where
     f :: LinMap Double (Double, Double) Double
     f = LinMap f'
