@@ -8,37 +8,38 @@ module VectorSpace where
 
 import Prelude hiding ((.), id)
 import Data.List
-import Data.Maybe
+import qualified Data.Map.Strict as Map
+import Data.Map.Strict (Map)
 
 import Common hiding (Scalable (..))
 
 -- ------------------------------------------------------------------------
 
-class (Fractional (Scalar a), Eq (Basis a), Additive a) => VectorSpace a where
+class (Fractional (Scalar a), Ord (Basis a), Additive a) => VectorSpace a where
   type Scalar a
   type Basis a
   scale :: Scalar a -> a -> a
-  decompose :: a -> [(Basis a, Scalar a)]
+  decompose :: a -> Map (Basis a) (Scalar a)
   basisValue :: Basis a -> a
 
 linComb :: VectorSpace a => [(a, Scalar a)] -> a
 linComb xs = foldl' (.+.) zero [scale s a | (a,s) <- xs]
 
-compose :: VectorSpace a => [(Basis a, Scalar a)] -> a
-compose xs = linComb [(basisValue a, s) | (a,s) <- xs]
+compose :: VectorSpace a => Map (Basis a) (Scalar a) -> a
+compose xs = linComb [(basisValue a, s) | (a,s) <- Map.toList xs]
 
 instance VectorSpace Double where
   type Scalar Double = Double
   type Basis Double = ()
   scale = (*)
-  decompose x = [((), x)]
+  decompose x = Map.singleton () x
   basisValue () = 1
 
 instance (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => VectorSpace (a, b) where
   type Scalar (a, b) = Scalar a
   type Basis (a, b) = Either (Basis a) (Basis b)
   scale s (a,b) = (scale s a, scale s b)
-  decompose (a,b) = [(Left x, s) | (x,s) <- decompose a] ++ [(Right x, s) | (x,s) <- decompose b]
+  decompose (a,b) = Map.mapKeysMonotonic Left (decompose a) `Map.union` Map.mapKeysMonotonic Right (decompose b)
   basisValue (Left x) = (basisValue x, zero)
   basisValue (Right x) = (zero, basisValue x)
 
@@ -47,7 +48,7 @@ instance (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => VectorSpace (a, 
 newtype LinMap s a b = LinMap (Basis a -> b)
 
 asFun :: (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => (LinMap s a b) -> (a -> b)
-asFun (LinMap f) x = linComb [(f b, s) | (b,s) <- decompose x]
+asFun (LinMap f) x = linComb [(f b, s) | (b,s) <- Map.toList (decompose x)]
 
 instance Category (LinMap s) where
   type Obj (LinMap s) a = (VectorSpace a, Scalar a ~ s)
@@ -98,11 +99,11 @@ instance VectorSpace a => VectorSpace (Dual a) where
   type Scalar (Dual a) = Scalar a
   type Basis (Dual a) = Basis a
   scale s (Dual (LinMap f)) = Dual (LinMap ((s*) . f))
-  decompose (Dual (LinMap f)) = [(x, f x) | (x, _) <- decompose (zero :: a)]
+  decompose (Dual (LinMap f)) = Map.mapWithKey (\x _ -> f x) $ decompose (zero :: a)
   basisValue b = Dual (LinMap (\b' -> if b == b' then 1 else 0))
 
 toDual :: VectorSpace a => a -> Dual a
-toDual a = Dual $ LinMap $ \x -> fromMaybe 0 (lookup x m)
+toDual a = Dual $ LinMap $ \x -> Map.findWithDefault 0 x m
   where
     m = decompose a
 
@@ -111,20 +112,20 @@ toDualMap (LinMap f) = LinMap g
   where
     -- f :: Basis a -> b
     g :: Basis (Dual b) -> Dual a
-    g b' = Dual (LinMap h)
+    g b = Dual (LinMap h)
       where
         h :: Basis a -> s
-        h a = sum [s | (b :: Basis b, s) <- decompose (f a), b == b']
+        h = Map.findWithDefault 0 b . decompose . f
 
 fromDual :: forall a. VectorSpace a => Dual a -> a
-fromDual (Dual (LinMap f)) = compose [(x, f x) | (x, _) <- decompose (zero :: a)]
+fromDual (Dual (LinMap f)) = compose $ Map.mapWithKey (\x _ -> f x) $ decompose (zero :: a)
 
 fromDualMap :: forall a b s. (VectorSpace a, VectorSpace b, Scalar a ~ s, Scalar b ~ s) => LinMap s (Dual b) (Dual a) -> LinMap s a b
 fromDualMap (LinMap f) = LinMap g
   where
     -- f :: Basis (Dual b) -> Dual a    
     g :: Basis a -> b
-    g a = compose [(b, h a) | (b, _) <- decompose (zero :: b), let Dual (LinMap (h :: Basis a -> s)) = f b]
+    g a = compose $ Map.mapWithKey (\b _ -> let Dual (LinMap (h :: Basis a -> s)) = f b in h a) $ decompose (zero :: b)
 
 -- ------------------------------------------------------------------------
 
