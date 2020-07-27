@@ -1,12 +1,13 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 module VectorSpace where
 
-import Prelude hiding ((.), id)
+import Prelude hiding ((.), id, curry, uncurry)
 import Data.List
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
@@ -137,3 +138,57 @@ testDual = (asFun f (2,1) == 7, asFun f2 (2,1) == 7)
         f' (Left _) = 2
         f' (Right _) = 3
     f2 = fromDualMap (toDualMap f)
+
+-- ------------------------------------------------------------------------
+
+data a :⊗ b where
+  TensorProd :: (Scalar a ~ s, Scalar b ~ s) => Map (Basis a, Basis b) s -> a :⊗ b
+
+instance (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => Additive (a :⊗ b) where
+  zero = TensorProd $ Map.fromList $ do
+    (a, _) <- Map.toList $ decompose (zero :: a)
+    (b, _) <- Map.toList $ decompose (zero :: b)
+    return ((a,b), 0)
+  TensorProd m1 .+. TensorProd m2 = TensorProd $ Map.unionWith (+) m1 m2
+
+instance (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => VectorSpace (a :⊗ b) where
+  type Scalar (a :⊗ b) = Scalar a
+  type Basis (a :⊗ b) = (Basis a, Basis b)
+  scale s (TensorProd m) = TensorProd $ Map.map (*s) m
+  decompose (TensorProd m) = m
+  basisValue ab = TensorProd $ Map.singleton ab 1
+
+curry
+  :: forall a b c s. (VectorSpace a, VectorSpace b, VectorSpace c, Scalar a ~ s, Scalar b ~ s, Scalar c ~ s)
+  => LinMap a (a :⊗ b) c -> LinMap s a (LinMap s b c)
+curry (LinMap f) = LinMap g
+  where
+    g :: Basis a -> LinMap s b c
+    g ba = LinMap (\bb -> f (ba,bb))
+
+uncurry
+  :: forall a b c s. (VectorSpace a, VectorSpace b, VectorSpace c, Scalar a ~ s, Scalar b ~ s, Scalar c ~ s)
+  => LinMap s a (LinMap s b c) -> LinMap a (a :⊗ b) c
+uncurry (LinMap f) = LinMap g
+  where
+    g (ba,bb) =
+      case f ba of
+        LinMap h -> h bb
+
+mapTensor
+  :: forall a b c d s.
+     ( VectorSpace a, VectorSpace b, VectorSpace c, VectorSpace d
+     , Scalar a ~ s, Scalar b ~ s, Scalar c ~ s, Scalar d ~ s
+     )
+  => LinMap s a b -> LinMap s c d -> LinMap s (a :⊗ c) (b :⊗ d)
+mapTensor (LinMap f) (LinMap g) = LinMap h
+  where
+    h :: Basis (a :⊗ c) -> (b :⊗ d)
+    h (ba, bc) = TensorProd m
+      where
+        m1 :: Map (Basis b) s
+        m1 = decompose (f ba)
+        m2 :: Map (Basis d) s
+        m2 = decompose (g bc)
+        m :: Map (Basis (b :⊗ d)) s
+        m = Map.fromList [((bb,bd), s1*s2) | (bb, s1) <- Map.toList m1, (bd, s2) <- Map.toList m2]
