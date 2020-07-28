@@ -230,33 +230,6 @@ instance (Category k, Obj k r, Scalable k a) => Scalable (Cont r k) a where
 
 -- ------------------------------------------------------------------------
 
-{-
-HasDotという名前に反して、内積ではなく、双対空間との同型性ではないか?
-* 一般の内積だと dot に inverse が存在するとは限らない
-* 正定値性の要求などがない
-* dot . scale a = (. scale a) . dot が期待されていると思うが、
-  内積だとしたら複素数の場合にはその代わりに
-  dot . scale a = (. scale (conjugate a)) . dot 
-  が成り立つことを期待したい。
--}
-class (Category k, Obj k s, Obj k u, Additive u) => HasDot k s u where
-  dot :: u -> (u `k` s)
-  undot :: (u `k` s) -> u
-
-instance (Scalable (->⁺) s, Num s) => HasDot (->⁺) s s where
-  dot = scale
-  undot (AddFun f) = f 1
-
-instance (Cocartesian k, HasDot k s a, HasDot k s b, Obj k (a,b)) => HasDot k s (a, b) where
-  dot (a,b) = dot a ▽ dot b
-  undot f = (undot (f . inl), undot (f . inr))
-
--- 論文では結果の型は b ⊸ a だったけど b → a になってしまう
-onDot :: (HasDot k s a , HasDot k s b) => ((b `k` s) -> (a `k` s)) -> (b -> a)
-onDot f = undot . f . dot
-
--- ------------------------------------------------------------------------
-
 newtype Dual k a b = Dual (b `k` a)
 -- 論文での定義はこれだけど onDot の結果が b -> a なので asDual が論文のように定義
 -- 出来るためには後述の Dual' のような定義でないといけない。

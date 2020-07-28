@@ -235,3 +235,33 @@ instance (Additive a, Num a) => Scalable (->⁺) a where
 instance (Obj (->⁺) a, Obj (->⁺) b) => Additive (a ->⁺ b) where
   zero = zeroBP
   (.+.) = addBP
+
+-- ------------------------------------------------------------------------
+
+{-
+HasDotという名前に反して、内積ではなく、双対空間との同型性ではないか?
+* 一般の内積だと dot に inverse が存在するとは限らない
+* 正定値性の要求などがない
+* dot . scale a = (. scale a) . dot が期待されていると思うが、
+  内積だとしたら複素数の場合にはその代わりに
+  dot . scale a = (. scale (conjugate a)) . dot 
+  が成り立つことを期待したい。
+-}
+class (Category k, Obj k s, Obj k u, Additive u) => HasDot k s u where
+  dot :: u -> (u `k` s)
+  undot :: (u `k` s) -> u
+
+instance (Scalable (->⁺) s, Num s) => HasDot (->⁺) s s where
+  dot = scale
+  undot (AddFun f) = f 1
+
+instance (Cocartesian k, HasDot k s a, HasDot k s b, Obj k (a,b)) => HasDot k s (a, b) where
+  dot (a,b) = dot a ▽ dot b
+  undot f = (undot (f . inl), undot (f . inr))
+
+-- 論文では結果の型は b ⊸ a だったけど b → a になってしまう
+onDot :: (HasDot k s a , HasDot k s b) => ((b `k` s) -> (a `k` s)) -> (b -> a)
+onDot f = undot . f . dot
+
+-- ------------------------------------------------------------------------
+
