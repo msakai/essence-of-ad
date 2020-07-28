@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -12,6 +13,7 @@ import Data.List
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
 
+import qualified Common as C
 import Common hiding (Scalable (..))
 
 -- ------------------------------------------------------------------------
@@ -103,6 +105,9 @@ instance Cocartesian (LinMap s) where
     where
       f (Left ba) = basisValue ba
       f (Right bb) = basisValue bb
+
+instance (VectorSpace s, Basis s ~ (), Scalar s ~ s) => C.Scalable (LinMap s) s where
+  scale s = LinMap (\() -> s)
 
 test_LinMap_VectorSpace = m
   where
