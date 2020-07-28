@@ -10,7 +10,23 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
-module Generalized where
+module Generalized
+  ( module Common
+
+  , D (..)
+  , linearD
+
+  , Cont (..)
+  , cont
+
+  , Dual (..)
+
+  , Dual' (..)
+  , asDual'
+
+  , Begin (..)
+  , begin
+  ) where
 
 import Prelude hiding ((.), id)
 import Common
