@@ -165,6 +165,10 @@ fromDualMap (LinMap f) = LinMap g
     g :: Basis a -> b
     g ba = compose $ Map.mapWithKey (\bb _ -> let Dual (LinMap (h :: Basis a -> s)) = f bb in h ba) $ decompose (zero :: b)
 
+instance (VectorSpace u, VectorSpace s, Scalar u ~ s, Scalar s ~ s) => C.HasDot (LinMap s) s u where
+  dot x = case toDual x of Dual f -> f
+  undot f = fromDual (Dual f)
+
 -- ------------------------------------------------------------------------
 
 testDual = (asFun f (2,1) == 7, asFun f2 (2,1) == 7)
