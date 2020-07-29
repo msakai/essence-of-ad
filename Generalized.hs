@@ -78,10 +78,12 @@ instance Cocartesian k => Cocartesian (D k) where
 instance (Cocartesian k, Scalable k s, Additive s, Num s) => NumCat (D k) s where
   -- 論文では negateC = linearD negateC negateC と定義していたが、
   -- こっちの定義なら NumCat k s が不要で、適切ではないか?
+  -- NumCat の定義には mulC の定義が必要なので (->⁺) のインスタンスを定義できない。
   negateC = linearD negateC (scale (-1))
 
   -- 論文では addC = linearD addC addC と定義していたが、
   -- こっちの定義なら NumCat k s が不要で、適切ではないか?
+  -- NumCat の定義には mulC の定義が必要なので (->⁺) のインスタンスを定義できない。
   addC = linearD addC jam
 
   -- mulC = D (\(a,b) -> (a * b, scale b ▽ scale a))

@@ -202,7 +202,17 @@ instance Cartesian (->⁺) where
   dup = AddFun dup
 
 {-
-h (a,b) = a * b のような関数を考えると、
+Category (->⁺) は対象を Additive なものに制限しているだけでなく、
+射も f(a .+. b) = f a .+. f b を満たすものに制限しているはず。
+
+これを満たしていれば、
+AddFun h . inl = AddFun f
+AddFun h . inr = AddFun g
+を満たす h は
+h (x, y) = h (x, zero) .+. h (zero, y)  = f x .+. g y
+で一意に決まる。
+
+これを満たさない h (a,b) = a * b のような関数を考えると、
 AddFun h . inl = AddFun (const 0)
 AddFun h . inr = AddFun (const 0)
 かつ
@@ -210,8 +220,7 @@ AddFun (const 0) . inl = AddFun (const 0)
 AddFun (const 0) . inr = AddFun (const 0)
 だが
 AddFun h ≠ AddFun (const 0)
-なので直和の不変性を満たさない。
-なので、本当は射を制限した圏を考える必要がある。
+なので直和の普遍性を満たさない。
 -}
 instance Cocartesian (->⁺) where
   inl = AddFun inlF
@@ -242,8 +251,9 @@ instance (Obj (->⁺) a, Obj (->⁺) b) => Additive (a ->⁺ b) where
 HasDotという名前に反して、内積ではなく、双対空間との同型性ではないか?
 * 一般の内積だと dot に inverse が存在するとは限らない
 * 正定値性の要求などがない
-* dot . scale a = (. scale a) . dot が期待されていると思うが、
-  内積だとしたら複素数の場合にはその代わりに
+* Dual に対する Scalable のインスタンスの定義時に
+  dot . scale a = (. scale a) . dot
+  が期待されていると思うが、内積だとしたら、複素数上のベクトル空間の場合にはその代わりに
   dot . scale a = (. scale (conjugate a)) . dot 
   が成り立つことを期待したい。
 -}
