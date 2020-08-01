@@ -58,7 +58,7 @@ data a ⊸ b where
 と書けると格好良いが、スカラー型の異なるベクトル空間の直積とかで困ったことになる。
 -}
 
-asFun :: (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => (LinMap s a b) -> (a -> b)
+asFun :: (VectorSpace a, VectorSpace b, Scalar a ~ s, Scalar b ~ s) => (LinMap s a b) -> (a -> b)
 asFun (LinMap f) a = linComb [(f ba, s) | (ba,s) <- Map.toList (decompose a)]
 
 instance Category (LinMap s) where
