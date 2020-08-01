@@ -14,14 +14,17 @@ module Generalized
   ( module Common
 
   , D (..)
+  , unD
   , linearD
 
   , Cont (..)
   , cont
 
   , Dual (..)
+  , unDual
 
   , Dual' (..)
+  , unDual'
   , asDual'
 
   , Begin (..)
@@ -34,6 +37,9 @@ import Common
 -- ------------------------------------------------------------------------
 
 newtype D k a b = D (a -> (b, a `k` b))
+
+unD :: D k a b -> (a -> (b, a `k` b))
+unD (D f) = f
 
 linearD :: (a -> b) -> (a `k` b) -> D k a b
 linearD f f' = D (\a -> (f a, f'))
@@ -252,6 +258,9 @@ newtype Dual k a b = Dual (b `k` a)
 -- 論文での定義はこれだけど onDot の結果が b -> a なので asDual が論文のように定義
 -- 出来るためには後述の Dual' のような定義でないといけない。
 
+unDual :: Dual k a b -> b `k` a
+unDual (Dual f) = f
+
 instance Category k => Category (Dual k) where
   type Obj (Dual k) a = Obj k a
   id = Dual id
@@ -286,6 +295,9 @@ instance Scalable k a => Scalable (Dual k) a where
 -- ------------------------------------------------------------------------
 
 newtype Dual' s (k :: * -> * -> *) a b = Dual' (b -> a)
+
+unDual' :: Dual' s k a b -> (b -> a)
+unDual' (Dual' f) = f
 
 instance (Category k, Obj k s) => Category (Dual' s k) where
   type Obj (Dual' s k) a = (Obj k a, HasDot k s a)

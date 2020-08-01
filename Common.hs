@@ -187,6 +187,9 @@ instance Floating a => FloatingCat (->) a where
 
 newtype a ->⁺ b = AddFun (a -> b)
 
+unAddFun :: (a ->⁺ b) -> (a -> b)
+unAddFun (AddFun f) = f
+
 instance Category (->⁺) where
   type Obj (->⁺) a = Additive a
   id = AddFun id
