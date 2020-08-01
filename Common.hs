@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE InstanceSigs #-}
@@ -12,9 +13,13 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 module Common where
 
-import Prelude hiding ((.), id)
+import Prelude hiding ((.), id, zipWith)
 import qualified Prelude as P
+import Data.Foldable
 import Data.Kind
+
+import Data.Functor.Rep
+import Data.Pointed
 
 infixr 0 ->⁺
 infixr 9 .
@@ -278,3 +283,81 @@ onDot f = undot . f . dot
 
 -- ------------------------------------------------------------------------
 
+class Functor h => Zip h where
+  zipWith :: (a -> b -> c) -> h a -> h b -> h c
+
+unzip :: Functor h => h (a, b) -> (h a, h b)
+unzip = fmap exl △ fmap exr
+
+-- @Functor h@ is not required in the paper. But I think it should.
+class (Category k, Functor h) => MonoidalI k h where
+  crossI :: (Obj k a, Obj k b) => h (a `k` b) -> (h a `k` h b)
+  monObjI :: Obj k a => ObjR k (h a)
+
+class MonoidalI k h => CartesianI k h where
+  exI :: Obj k a => h (h a `k` a)
+  replI :: Obj k a => a `k` h a -- why not dupI?
+
+class MonoidalI k h => CocartesianI k h where
+  inI :: Obj k a => h (a `k` h a)
+  jamI :: Obj k a => h a `k` a
+
+forkI :: forall k h a b. (CartesianI k h, Obj k a, Obj k b) => h (a `k` b) -> (a `k` h b)
+forkI fs =
+  case (monObjI :: ObjR k (h a), monObjI :: ObjR k (h b)) of
+    (ObjR, ObjR) -> crossI fs . replI
+
+-- why not name "unforkI"?
+unforkF :: forall k h a b. (CartesianI k h, Obj k a, Obj k b) => (a `k` h b) -> h (a `k` b)
+unforkF f = 
+  case monObjI :: ObjR k (h b) of
+    ObjR -> fmap (. f) exI
+
+joinI :: forall k h a b. (CocartesianI k h, Obj k a, Obj k b) => h (b `k` a) -> (h b `k` a)
+joinI fs =
+  case (monObjI :: ObjR k (h a), monObjI :: ObjR k (h b)) of
+    (ObjR, ObjR) -> jamI . crossI fs
+
+-- why not name "unjoinI"?
+unjoinPF :: forall k h a b. (CocartesianI k h, Obj k a, Obj k b) => (h b `k` a) -> h (b `k` a)
+unjoinPF f =
+  case monObjI :: ObjR k (h b) of
+    ObjR -> fmap (f .) inI
+
+-- ------------------------------------------------------------------------
+
+instance Zip h => MonoidalI (->) h where
+  crossI = zipWith id
+  monObjI = ObjR
+
+instance (Representable h, Zip h, Pointed h) => CartesianI (->) h where
+  exI = tabulate (flip index)
+  replI = point
+
+-- "Foldable h" is required in the paper, but "Representable h" and "Eq (Rep h)" are required instead.
+inIF :: (Additive a, Representable h, Eq (Rep h)) => h (a -> h a)
+inIF = tabulate (\i a -> tabulate (\j -> if i == j then a else zero))
+
+-- referred as "sum" in the paper
+jamIF :: (Additive a, Foldable h) => h a -> a
+jamIF = foldl' (.+.) zero
+
+-- ------------------------------------------------------------------------
+
+-- type Additive1 h = forall a. Additive a => Additive (h a)
+
+instance (Zip h, forall a. Additive a => Additive (h a)) => MonoidalI (->⁺) h where
+  crossI = AddFun . crossI . fmap unAddFun
+  monObjI = ObjR
+
+instance (Representable h, Zip h, Pointed h, forall a. Additive a => Additive (h a)) => CartesianI (->⁺) h where
+  exI = fmap AddFun exI
+  replI = AddFun replI
+
+-- "Representable h" and "Eq (Rep h)" are missing in the paper.
+-- "Zip h" (arising from the superclasses of an instance declaration) is missing in the paper.
+instance (Representable h, Eq (Rep h), Foldable h, Zip h, forall a. Additive a => Additive (h a)) => CocartesianI (->⁺) h where
+  inI = fmap AddFun inIF
+  jamI = AddFun jamIF
+
+-- ------------------------------------------------------------------------

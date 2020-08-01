@@ -31,7 +31,11 @@ module Generalized
   , begin
   ) where
 
-import Prelude hiding ((.), id)
+import Prelude hiding ((.), id, zipWith, unzip)
+
+import Data.Functor.Rep
+import Data.Pointed
+
 import Common
 
 -- ------------------------------------------------------------------------
@@ -102,6 +106,28 @@ instance (Scalable k s, Additive s, Floating s) => FloatingCat (D k) s where
   sinC = D (\a -> (sin a, scale (cos a)))
   cosC = D (\a -> (cos a, scale (- sin a)))
   expC = D (\a -> let e = exp a in (e, scale e))
+
+second :: (Monoidal k, Obj k a, Obj k b, Obj k d) => (b `k` d) -> ((a,b) `k` (a,d))
+second g = id >< g
+
+instance (MonoidalI k h, Zip h, forall a. Additive a => Additive (h a)) => MonoidalI (D k) h where
+  crossI fs = D (second crossI . unzip . crossI (fmap unD fs))
+
+  monObjI :: forall a. (Obj (D k) a) => ObjR (D k) (h a)
+  monObjI = case monObjI :: ObjR k (h a) of ObjR -> ObjR
+
+instance (CartesianI (->) h, CartesianI k h, Zip h, forall a. Additive a => Additive (h a)) => CartesianI (D k) h where
+  -- 論文では linearD exI exI となっていたが間違い
+  exI = zipWith linearD exI exI
+
+  -- 論文では zipWith linearD replI replI となっていたが間違い
+  replI = linearD replI replI
+
+-- "Representable h" and "Eq (Rep h)" are for inIF.
+-- "Foldable h" is for sum.
+instance (CocartesianI k h, Zip h, Representable h, Eq (Rep h), forall a. Additive a => Additive (h a), Foldable h) => CocartesianI (D k) h where
+  inI = zipWith linearD inIF inI
+  jamI = linearD jamIF jamI
 
 -- ------------------------------------------------------------------------
 
@@ -288,6 +314,20 @@ instance Cartesian k => Cocartesian (Dual k) where
 instance Scalable k a => Scalable (Dual k) a where
   scale a = Dual (scale a)
 
+instance (MonoidalI k h, Functor h, forall a. Additive a => Additive (h a)) => MonoidalI (Dual k) h where
+  crossI = Dual . crossI . fmap unDual
+
+  monObjI :: forall a. Obj (Dual k) a => ObjR (Dual k) (h a)
+  monObjI = case monObjI :: ObjR k (h a) of ObjR -> ObjR
+
+instance (CocartesianI k h, Functor h, forall a. Additive a => Additive (h a)) => CartesianI (Dual k) h where
+  exI = fmap Dual inI
+  replI = Dual jamI
+
+instance (CartesianI k h, Functor h, forall a. Additive a => Additive (h a)) => CocartesianI (Dual k) h where
+  inI = fmap Dual exI
+  jamI = Dual replI
+
 -- 前述のように onDot の型が違うので型検査を通らない
 -- asDual :: (Obj k a, Obj k b, HasDot k s a , HasDot k s b) => Cont s k a b -> Dual k a b
 -- asDual (Cont f) = Dual (onDot f)
@@ -461,6 +501,20 @@ instance (Obj (Dual' s k) a, Scalable k a, Num a) => Scalable (Dual' s k) a wher
 = Dual' (id . scale a)
 = Dual' (scale a)
 -}
+
+instance (MonoidalI k h, Zip h, forall a. Additive a => Additive (h a), forall a. HasDot k s a => HasDot k s (h a), Obj k s) => MonoidalI (Dual' s k) h where
+  crossI = Dual' . crossI . fmap unDual'
+
+  monObjI :: forall a. Obj (Dual' s k) a => ObjR (Dual' s k) (h a)
+  monObjI = case monObjI :: ObjR k (h a) of ObjR -> ObjR
+
+instance (CocartesianI k h, Representable h, Eq (Rep h), Zip h, Pointed h, Foldable h, forall a. Additive a => Additive (h a), forall a. HasDot k s a => HasDot k s (h a), Obj k s) => CartesianI (Dual' s k) h where
+  exI = fmap Dual' inIF
+  replI = Dual' jamIF
+
+instance (CartesianI k h, Representable h, Pointed h, Foldable h, Zip h, forall a. Additive a => Additive (h a), forall a. HasDot k s a => HasDot k s (h a), Obj k s) => CocartesianI (Dual' s k) h where
+  inI = fmap Dual' exI
+  jamI = Dual' replI
 
 asDual' :: (Obj (Dual' s k) a, Obj (Dual' s k) b) => Cont s k a b -> Dual' s k a b
 asDual' (Cont f) = Dual' (onDot f)
