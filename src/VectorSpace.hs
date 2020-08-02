@@ -204,7 +204,7 @@ instance (VectorSpace a, VectorSpace b, Scalar a ~ Scalar b) => VectorSpace (a :
 
 curry
   :: forall a b c s. (VectorSpace a, VectorSpace b, VectorSpace c, Scalar a ~ s, Scalar b ~ s, Scalar c ~ s)
-  => LinMap a (a :⊗ b) c -> LinMap s a (LinMap s b c)
+  => LinMap s (a :⊗ b) c -> LinMap s a (LinMap s b c)
 curry (LinMap f) = LinMap g
   where
     g :: Basis a -> LinMap s b c
@@ -212,7 +212,7 @@ curry (LinMap f) = LinMap g
 
 uncurry
   :: forall a b c s. (VectorSpace a, VectorSpace b, VectorSpace c, Scalar a ~ s, Scalar b ~ s, Scalar c ~ s)
-  => LinMap s a (LinMap s b c) -> LinMap a (a :⊗ b) c
+  => LinMap s a (LinMap s b c) -> LinMap s (a :⊗ b) c
 uncurry (LinMap f) = LinMap g
   where
     g (ba,bb) =
