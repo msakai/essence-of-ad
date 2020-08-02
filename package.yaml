@@ -23,7 +23,9 @@ dependencies:
 - adjunctions
 - base >= 4.7 && < 5
 - containers
+- hmatrix
 - pointed
+- vector
 
 library:
   source-dirs: src
