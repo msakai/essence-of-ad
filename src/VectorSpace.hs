@@ -58,13 +58,13 @@ data a ⊸ b where
 と書けると格好良いが、スカラー型の異なるベクトル空間の直積とかで困ったことになる。
 -}
 
-asFun :: (VectorSpace a, VectorSpace b, Scalar a ~ s, Scalar b ~ s) => (LinMap s a b) -> (a -> b)
-asFun (LinMap f) a = linComb [(f ba, s) | (ba,s) <- Map.toList (decompose a)]
-
 instance Category (LinMap s) where
   type Obj (LinMap s) a = (VectorSpace a, Scalar a ~ s)
   id = LinMap basisValue
-  g . LinMap f = LinMap (asFun g . f)
+  g . LinMap f = LinMap (toFun g . f)
+
+instance ToFun (LinMap s) where
+  toFun (LinMap f) a = linComb [(f ba, s) | (ba,s) <- Map.toList (decompose a)]
 
 instance Additive b => Additive (LinMap s a b) where
   zero = LinMap (const zero)
@@ -171,7 +171,7 @@ instance (VectorSpace u, VectorSpace s, Scalar u ~ s, Scalar s ~ s) => Base.HasD
 
 -- ------------------------------------------------------------------------
 
-testDual = (asFun f (2,1) == 7, asFun f2 (2,1) == 7)
+testDual = (toFun f (2,1) == 7, toFun f2 (2,1) == 7)
   where
     f :: LinMap Double (Double, Double) Double
     f = LinMap f'
@@ -235,7 +235,7 @@ mapTensor (LinMap f) (LinMap g) = LinMap h
         m :: Map (Basis (b :⊗ d)) s
         m = Map.fromList [((bb,bd), s1*s2) | (bb, s1) <- Map.toList m1, (bd, s2) <- Map.toList m2]
 
-TensorProd test_Tensor = asFun h t
+TensorProd test_Tensor = toFun h t
   where
     f, g :: LinMap Double Double Double
     f = LinMap (const 2)

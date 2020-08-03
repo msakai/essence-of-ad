@@ -1,4 +1,5 @@
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -Wno-partial-type-signatures #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -67,22 +68,22 @@ cosSinProdC =
 -- ------------------------------------------------------------------------
 
 sqrC'_LinMap :: Double -> (Double, Double)
-sqrC'_LinMap x = (z, VS.asFun f' 1)
+sqrC'_LinMap x = (z, toFun f' 1)
   where
     D f = sqrC
-    (z, f') = f x
+    (z, f' :: VS.LinMap Double _ _) = f x
 
 magSqrC'_LinMap :: (Double, Double) -> (Double, (Double, Double))
-magSqrC'_LinMap (x,y) = (z, (VS.asFun f' (1,0), VS.asFun f' (0,1)))
+magSqrC'_LinMap (x,y) = (z, (toFun f' (1,0), toFun f' (0,1)))
   where
     D f = magSqrC
-    (z, f') = f (x,y)
+    (z, f' :: VS.LinMap Double _ _) = f (x,y)
 
 cosSinProdC'_LinMap :: (Double, Double) -> ((Double,Double), ((Double, Double), (Double, Double)))
-cosSinProdC'_LinMap (x,y) = (z, tr (VS.asFun f' (1,0), VS.asFun f' (0,1)))
+cosSinProdC'_LinMap (x,y) = (z, tr (toFun f' (1,0), toFun f' (0,1)))
   where
     D f = cosSinProdC
-    (z, f') = f (x,y)
+    (z, f' :: VS.LinMap Double _ _) = f (x,y)
 
 test_sqrC'_LinMap :: Assertion
 test_sqrC'_LinMap = sqrC'_LinMap 3 @?= (sqr 3, sqr' 3)
@@ -99,23 +100,23 @@ sqrC'_Cont :: Double -> (Double, Double)
 sqrC'_Cont x = (z, g 1)
   where
     D f = sqrC
-    (z, Cont k) = f x
-    g = VS.asFun (k id)
+    (z, Cont k :: Cont _ (VS.LinMap Double) _ _) = f x
+    g = toFun (k id)
 
 magSqrC'_Cont :: (Double, Double) -> (Double, (Double, Double))
 magSqrC'_Cont (x,y) = (z, (g (1,0), g (0,1)))
   where
     D f = magSqrC
-    (z, Cont k) = f (x,y)
-    g = VS.asFun (k id)
+    (z, Cont k :: Cont _ (VS.LinMap Double) _ _) = f (x,y)
+    g = toFun (k id)
 
 cosSinProdC'_Cont :: (Double, Double) -> ((Double,Double), ((Double,Double),(Double,Double)))
 cosSinProdC'_Cont (x,y) = (z, ((g1 (1,0), g1 (0,1)), (g2 (1,0), g2 (0,1))))
   where
     D f = cosSinProdC
-    (z, Cont k) = f (x,y)
-    g1 = VS.asFun (k exl)
-    g2 = VS.asFun (k exr)
+    (z, Cont k :: Cont _ (VS.LinMap Double) _ _) = f (x,y)
+    g1 = toFun (k exl)
+    g2 = toFun (k exr)
 
 test_sqrC'_Cont :: Assertion
 test_sqrC'_Cont = sqrC'_Cont 3 @?= (sqr 3, sqr' 3)
@@ -131,20 +132,20 @@ test_cosSinProdC'_Cont = cosSinProdC'_Cont (3,4) @?= (cosSinProd (3,4), cosSinPr
 sqrC'_Dual' :: Double -> (Double, Double)
 sqrC'_Dual' x = (z, k 1)
   where
-    D f = (sqrC :: D (Dual' Double (VS.LinMap Double)) Double Double)
-    (z, Dual' k) = f x
+    D f = sqrC
+    (z, Dual' k :: Dual' Double (VS.LinMap Double) _ _) = f x
 
 magSqrC'_Dual' :: (Double, Double) -> (Double, (Double, Double))
 magSqrC'_Dual' (x,y) = (z, k 1)
   where
-    D f = (magSqrC :: D (Dual' Double (VS.LinMap Double)) (Double,Double) Double)
-    (z, Dual' k) = f (x,y)
+    D f = magSqrC
+    (z, Dual' k :: Dual' Double (VS.LinMap Double) _ _) = f (x,y)
 
 cosSinProdC'_Dual' :: (Double, Double) -> ((Double,Double), ((Double,Double), (Double,Double)))
 cosSinProdC'_Dual' (x,y) = (z, (k (1,0), k (0,1)))
   where
-    D f = (cosSinProdC :: D (Dual' Double (VS.LinMap Double)) (Double,Double) (Double,Double))
-    (z, Dual' k) = f (x,y)
+    D f = cosSinProdC
+    (z, Dual' k :: Dual' Double (VS.LinMap Double) _ _) = f (x,y)
 
 test_sqrC'_Dual' :: Assertion
 test_sqrC'_Dual' = sqrC'_Dual' 3 @?= (sqr 3, sqr' 3)
@@ -158,22 +159,22 @@ test_cosSinProdC'_Dual' = cosSinProdC'_Dual' (3,4) @?= (cosSinProd (3,4), cosSin
 -- ------------------------------------------------------------------------
 
 sqrC'_Begin :: Double -> (Double, Double)
-sqrC'_Begin x = (z, VS.asFun (k id) 1)
+sqrC'_Begin x = (z, toFun (k id) 1)
   where
     D f = sqrC
-    (z, Begin k) = f x
+    (z, Begin k :: Begin _ (VS.LinMap Double) _ _) = f x
 
 magSqrC'_Begin :: (Double, Double) -> (Double, (Double, Double))
-magSqrC'_Begin (x,y) = (z, (VS.asFun (k inl) 1, VS.asFun (k inr) 1))
+magSqrC'_Begin (x,y) = (z, (toFun (k inl) 1, toFun (k inr) 1))
   where
     D f = magSqrC
-    (z, Begin k) = f (x,y)
+    (z, Begin k :: Begin _ (VS.LinMap Double) _ _) = f (x,y)
 
 cosSinProdC'_Begin :: (Double, Double) -> ((Double,Double), ((Double,Double), (Double,Double)))
-cosSinProdC'_Begin (x,y) = (z, tr (VS.asFun (k inl) 1, VS.asFun (k inr) 1))
+cosSinProdC'_Begin (x,y) = (z, tr (toFun (k inl) 1, toFun (k inr) 1))
   where
     D f = cosSinProdC
-    (z, Begin k) = f (x,y)
+    (z, Begin k :: Begin _ (VS.LinMap Double) _ _) = f (x,y)
 
 test_sqrC'_Begin :: Assertion
 test_sqrC'_Begin = sqrC'_Begin 3 @?= (sqr 3, sqr' 3)

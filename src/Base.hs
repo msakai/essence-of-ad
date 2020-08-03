@@ -159,6 +159,10 @@ class (Category k, Obj k a) => FloatingCat k a where
   cosC :: a `k` a
   expC :: a `k` a
 
+-- This class is not defined in the paper.
+class Category k => ToFun k where
+  toFun :: (Obj k a, Obj k b) => (a `k` b) -> (a -> b)
+
 -- ------------------------------------------------------------------------
 
 instance Category (->) where
@@ -199,6 +203,9 @@ instance Category (->⁺) where
   type Obj (->⁺) a = Additive a
   id = AddFun id
   AddFun g . AddFun f = AddFun (g . f)
+
+instance ToFun (->⁺) where
+  toFun = unAddFun
 
 instance Monoidal (->⁺) where
   AddFun g >< AddFun f = AddFun (g >< f)
