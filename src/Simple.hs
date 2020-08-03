@@ -14,7 +14,7 @@ module Simple where
 
 import Prelude hiding ((.), id)
 
-import Common
+import Base
 import qualified Generalized as G
 
 infixr 0 ⊸

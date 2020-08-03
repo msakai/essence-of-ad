@@ -13,8 +13,8 @@ import Data.List
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
 
-import qualified Common as C
-import Common hiding (Scalable (..))
+import qualified Base
+import Base hiding (Scalable (..))
 
 -- ------------------------------------------------------------------------
 
@@ -106,7 +106,7 @@ instance Cocartesian (LinMap s) where
       f (Left ba) = basisValue ba
       f (Right bb) = basisValue bb
 
-instance (VectorSpace s, Basis s ~ (), Scalar s ~ s) => C.Scalable (LinMap s) s where
+instance (VectorSpace s, Basis s ~ (), Scalar s ~ s) => Base.Scalable (LinMap s) s where
   scale s = LinMap (\() -> s)
 
 test_LinMap_VectorSpace = m
@@ -165,7 +165,7 @@ fromDualMap (LinMap f) = LinMap g
     g :: Basis a -> b
     g ba = compose $ Map.mapWithKey (\bb _ -> let Dual (LinMap (h :: Basis a -> s)) = f bb in h ba) $ decompose (zero :: b)
 
-instance (VectorSpace u, VectorSpace s, Scalar u ~ s, Scalar s ~ s) => C.HasDot (LinMap s) s u where
+instance (VectorSpace u, VectorSpace s, Scalar u ~ s, Scalar s ~ s) => Base.HasDot (LinMap s) s u where
   dot x = case toDual x of Dual f -> f
   undot f = fromDual (Dual f)
 

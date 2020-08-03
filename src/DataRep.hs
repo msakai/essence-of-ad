@@ -17,8 +17,8 @@ import qualified Data.Vector.Generic as VG
 import Foreign.Storable
 import qualified Numeric.LinearAlgebra as HM
 
-import qualified Common as C
-import Common hiding (Scalable (..))
+import qualified Base
+import Base hiding (Scalable (..))
 
 -- ------------------------------------------------------------------------
 
@@ -135,7 +135,7 @@ instance Cocartesian (LinMap s) where
     where
       n = dim (Proxy :: Proxy a)
 
-instance (VectorSpace s, Scalar s ~ s) => C.Scalable (LinMap s) s where
+instance (VectorSpace s, Scalar s ~ s) => Base.Scalable (LinMap s) s where
   scale s = assert (dim (Proxy :: Proxy s) == 1) $ LinMap ((1 HM.>< 1) [s])
 
 -- ------------------------------------------------------------------------
@@ -168,7 +168,7 @@ fromDual (Dual (LinMap m)) = fromVector $ HM.flatten m
 fromDualMap :: forall a b s. (VectorSpace a, VectorSpace b, Scalar a ~ s, Scalar b ~ s) => LinMap s (Dual b) (Dual a) -> LinMap s a b
 fromDualMap (LinMap m) = LinMap (HM.tr' m)
 
-instance (VectorSpace u, VectorSpace s, Scalar u ~ s, Scalar s ~ s) => C.HasDot (LinMap s) s u where
+instance (VectorSpace u, VectorSpace s, Scalar u ~ s, Scalar s ~ s) => Base.HasDot (LinMap s) s u where
   dot x = case toDual x of Dual f -> f
   undot f = fromDual (Dual f)
 
@@ -229,8 +229,8 @@ mapTensor (LinMap m1) (LinMap m2) = LinMap $ ((na*nc) HM.>< (nb*nd)) [(m1 `HM.at
 TensorProd test_Tensor = asFun h t
   where
     f, g :: LinMap Double Double Double
-    f = C.scale 2
-    g = C.scale 3
+    f = Base.scale 2
+    g = Base.scale 3
     h :: LinMap Double (Double :⊗ Double) (Double :⊗ Double)
     h = mapTensor f g
 

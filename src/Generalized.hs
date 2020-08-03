@@ -11,7 +11,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
 module Generalized
-  ( module Common
+  ( module Base
 
   , D (..)
   , unD
@@ -36,7 +36,7 @@ import Prelude hiding ((.), id, zipWith, unzip)
 import Data.Functor.Rep
 import Data.Pointed
 
-import Common
+import Base
 
 -- ------------------------------------------------------------------------
 

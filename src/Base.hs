@@ -11,7 +11,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UndecidableSuperClasses #-}
-module Common where
+module Base where
 
 import Prelude hiding ((.), id, zipWith)
 import qualified Prelude as P
