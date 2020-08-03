@@ -189,7 +189,7 @@ instance (Cocartesian k, Obj k r) => Monoidal (Cont r k) where
 -- - join/unjoin のために、 Cartesian k ではなく Cocartesian k が必要。
 --   また上述の Monoidal の条件としても Cocartesian k は必要。
 -- - Cartesian は contを使った定義だと必要だが、現在の定義だと実は不要。
-instance (Cocartesian k, Cartesian k, Obj k r, forall a. Additive (k a r)) => Cartesian (Cont r k) where
+instance (Cocartesian k, Cartesian k, Obj k r, forall a. Obj k a => Additive (k a r)) => Cartesian (Cont r k) where
   -- exl = Cont (join . inl)
   exl :: forall a b. (Obj (Cont r k) a, Obj (Cont r k) b) => Cont r k (a, b) a
   exl = case (monObj :: ObjR k (r, r), monObj :: ObjR k (a, b)) of
@@ -385,7 +385,7 @@ instance (Cocartesian k, Obj k s) => Monoidal (Dual' s k) where
   monObj :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => ObjR (Dual' s k) (a, b)
   monObj = case monObj :: ObjR k (a, b) of ObjR -> ObjR
 
-instance (Cartesian k, Cocartesian k, Obj k s, forall a. Additive (k a s)) => Cartesian (Dual' s k) where
+instance (Cartesian k, Cocartesian k, Obj k s, forall a. Obj k a => Additive (k a s)) => Cartesian (Dual' s k) where
 {-
   exl :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k (a, b) a
   exl = case monObj :: ObjR k (a, b) of
@@ -436,7 +436,7 @@ Similarly, asDual' exr = Dual' inrF
 = Dual' jamF
 -}
 
-instance (Cartesian k, Cocartesian k, Obj k s, forall a. Additive (k a s)) => Cocartesian (Dual' s k) where
+instance (Cartesian k, Cocartesian k, Obj k s, forall a. Obj k a => Additive (k a s)) => Cocartesian (Dual' s k) where
 {-
   inl :: forall a b. (Obj (Dual' s k) a, Obj (Dual' s k) b) => Dual' s k a (a, b)
   inl = case monObj :: ObjR k (a, b) of
