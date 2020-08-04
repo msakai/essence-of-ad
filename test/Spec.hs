@@ -1,11 +1,19 @@
 {-# OPTIONS_GHC -Wall -Wno-partial-type-signatures #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 
 import Prelude hiding ((.), id)
+import Data.Proxy
+
 import Generalized
-import qualified VectorSpace as VS
+import qualified VectorSpace
+import qualified DataRep
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -67,134 +75,128 @@ cosSinProdC =
 
 -- ------------------------------------------------------------------------
 
-sqrC'_LinMap :: Double -> (Double, Double)
-sqrC'_LinMap x = (z, toFun f' 1)
+class (ToFun k, Cartesian k, Cocartesian k, Scalable k Double, (forall a. Obj k a => Additive (a `k` Double)), HasDot k Double Double) => IsLinMap k
+instance IsLinMap (->⁺)
+instance IsLinMap (VectorSpace.LinMap Double)
+instance IsLinMap (DataRep.LinMap Double)
+
+sqrC'_LinMap :: forall k. IsLinMap k => Proxy k -> Double -> (Double, Double)
+sqrC'_LinMap _ x = (z, toFun f' 1)
   where
-    (z, f' :: VS.LinMap Double _ _) = unD sqrC x
+    (z, f' :: k _ _) = unD sqrC x
 
-magSqrC'_LinMap :: (Double, Double) -> (Double, (Double, Double))
-magSqrC'_LinMap (x,y) = (z, (toFun f' (1,0), toFun f' (0,1)))
+magSqrC'_LinMap :: forall k. IsLinMap k => Proxy k -> (Double, Double) -> (Double, (Double, Double))
+magSqrC'_LinMap _ (x,y) =
+  case monObj :: ObjR k (Double,Double) of
+    ObjR -> (z, (toFun f' (1,0), toFun f' (0,1)))
   where
-    (z, f' :: VS.LinMap Double _ _) = unD magSqrC (x,y)
+    (z, f' :: k _ _) = unD magSqrC (x,y)
 
-cosSinProdC'_LinMap :: (Double, Double) -> ((Double,Double), ((Double, Double), (Double, Double)))
-cosSinProdC'_LinMap (x,y) = (z, tr (toFun f' (1,0), toFun f' (0,1)))
+cosSinProdC'_LinMap :: forall k. IsLinMap k => Proxy k -> (Double, Double) -> ((Double,Double), ((Double, Double), (Double, Double)))
+cosSinProdC'_LinMap _ (x,y) =
+  case monObj :: ObjR k (Double,Double) of
+    ObjR -> (z, tr (toFun f' (1,0), toFun f' (0,1)))
   where
-    (z, f' :: VS.LinMap Double _ _) = unD cosSinProdC (x,y)
-
-test_sqrC'_LinMap :: Assertion
-test_sqrC'_LinMap = sqrC'_LinMap 3 @?= (sqr 3, sqr' 3)
-
-test_magSqrC'_LinMap :: Assertion
-test_magSqrC'_LinMap = magSqrC'_LinMap (3,4) @?= (magSqr (3,4), magSqr' (3,4))
-
-test_cosSinProdC'_LinMap :: Assertion
-test_cosSinProdC'_LinMap = cosSinProdC'_LinMap (3,4) @?= (cosSinProd (3,4), cosSinProd' (3,4))
+    (z, f' :: k _ _) = unD cosSinProdC (x,y)
 
 -- ------------------------------------------------------------------------
 
-sqrC'_Cont :: Double -> (Double, Double)
-sqrC'_Cont x = (z, g 1)
+sqrC'_Cont :: forall k. IsLinMap k => Proxy k -> Double -> (Double, Double)
+sqrC'_Cont _ x = (z, g 1)
   where
-    (z, Cont k :: Cont _ (VS.LinMap Double) _ _) = unD sqrC x
+    (z, Cont k :: Cont _ k _ _) = unD sqrC x
     g = toFun (k id)
 
-magSqrC'_Cont :: (Double, Double) -> (Double, (Double, Double))
-magSqrC'_Cont (x,y) = (z, (g (1,0), g (0,1)))
+magSqrC'_Cont :: forall k. IsLinMap k => Proxy k -> (Double, Double) -> (Double, (Double, Double))
+magSqrC'_Cont _ (x,y) =
+  case monObj :: ObjR k (Double,Double) of
+    ObjR ->
+      let g = toFun (k id)
+       in (z, (g (1,0), g (0,1)))
   where
-    (z, Cont k :: Cont _ (VS.LinMap Double) _ _) = unD magSqrC (x,y)
-    g = toFun (k id)
+    (z, Cont k :: Cont Double k (Double,Double) Double) = unD magSqrC (x,y)
 
-cosSinProdC'_Cont :: (Double, Double) -> ((Double,Double), ((Double,Double),(Double,Double)))
-cosSinProdC'_Cont (x,y) = (z, ((g1 (1,0), g1 (0,1)), (g2 (1,0), g2 (0,1))))
+cosSinProdC'_Cont :: forall k. IsLinMap k => Proxy k -> (Double, Double) -> ((Double,Double), ((Double,Double),(Double,Double)))
+cosSinProdC'_Cont _ (x,y) =
+  case monObj :: ObjR k (Double,Double) of
+    ObjR ->
+      let g1 = toFun (k exl)
+          g2 = toFun (k exr)
+       in (z, ((g1 (1,0), g1 (0,1)), (g2 (1,0), g2 (0,1))))
   where
-    (z, Cont k :: Cont _ (VS.LinMap Double) _ _) = unD cosSinProdC (x,y)
-    g1 = toFun (k exl)
-    g2 = toFun (k exr)
-
-test_sqrC'_Cont :: Assertion
-test_sqrC'_Cont = sqrC'_Cont 3 @?= (sqr 3, sqr' 3)
-
-test_magSqrC'_Cont :: Assertion
-test_magSqrC'_Cont = magSqrC'_Cont (3,4) @?= (magSqr (3,4), magSqr' (3,4))
-
-test_cosSinProdC'_Cont :: Assertion
-test_cosSinProdC'_Cont = cosSinProdC'_Cont (3,4) @?= (cosSinProd (3,4), cosSinProd' (3,4))
+    (z, Cont k :: Cont Double k (Double,Double) (Double,Double)) = unD cosSinProdC (x,y)
 
 -- ------------------------------------------------------------------------
 
-sqrC'_Dual' :: Double -> (Double, Double)
-sqrC'_Dual' x = (z, k 1)
+sqrC'_Dual' :: forall k. IsLinMap k => Proxy k -> Double -> (Double, Double)
+sqrC'_Dual' _ x = (z, k 1)
   where
-    (z, Dual' k :: Dual' Double (VS.LinMap Double) _ _) = unD sqrC x
+    (z, Dual' k :: Dual' Double k _ _) = unD sqrC x
 
-magSqrC'_Dual' :: (Double, Double) -> (Double, (Double, Double))
-magSqrC'_Dual' (x,y) = (z, k 1)
+magSqrC'_Dual' :: forall k. IsLinMap k => Proxy k -> (Double, Double) -> (Double, (Double, Double))
+magSqrC'_Dual' _ (x,y) =
+  case monObj :: ObjR k (Double,Double) of
+    ObjR -> (z, k 1)
   where
-    (z, Dual' k :: Dual' Double (VS.LinMap Double) _ _) = unD magSqrC (x,y)
+    (z, Dual' k :: Dual' Double k _ _) = unD magSqrC (x,y)
 
-cosSinProdC'_Dual' :: (Double, Double) -> ((Double,Double), ((Double,Double), (Double,Double)))
-cosSinProdC'_Dual' (x,y) = (z, (k (1,0), k (0,1)))
+cosSinProdC'_Dual' :: forall k. IsLinMap k => Proxy k -> (Double, Double) -> ((Double,Double), ((Double,Double), (Double,Double)))
+cosSinProdC'_Dual' _ (x,y) =
+  case monObj :: ObjR k (Double,Double) of
+    ObjR -> (z, (k (1,0), k (0,1)))
   where
-    (z, Dual' k :: Dual' Double (VS.LinMap Double) _ _) = unD cosSinProdC (x,y)
-
-test_sqrC'_Dual' :: Assertion
-test_sqrC'_Dual' = sqrC'_Dual' 3 @?= (sqr 3, sqr' 3)
-
-test_magSqrC'_Dual' :: Assertion
-test_magSqrC'_Dual' = magSqrC'_Dual' (3,4) @?= (magSqr (3,4), magSqr' (3,4))
-
-test_cosSinProdC'_Dual' :: Assertion
-test_cosSinProdC'_Dual' = cosSinProdC'_Dual' (3,4) @?= (cosSinProd (3,4), cosSinProd' (3,4))
+    (z, Dual' k :: Dual' Double k _ _) = unD cosSinProdC (x,y)
 
 -- ------------------------------------------------------------------------
 
-sqrC'_Begin :: Double -> (Double, Double)
-sqrC'_Begin x = (z, toFun (k id) 1)
+sqrC'_Begin :: forall k. IsLinMap k => Proxy k -> Double -> (Double, Double)
+sqrC'_Begin _ x = (z, toFun (k id) 1)
   where
-    (z, Begin k :: Begin _ (VS.LinMap Double) _ _) = unD sqrC x
+    (z, Begin k :: Begin _ k _ _) = unD sqrC x
 
-magSqrC'_Begin :: (Double, Double) -> (Double, (Double, Double))
-magSqrC'_Begin (x,y) = (z, (toFun (k inl) 1, toFun (k inr) 1))
+magSqrC'_Begin :: forall k. IsLinMap k => Proxy k -> (Double, Double) -> (Double, (Double, Double))
+magSqrC'_Begin _ (x,y) =
+  case monObj :: ObjR k (Double,Double) of
+    ObjR -> (z, (toFun (k inl) 1, toFun (k inr) 1))
   where
-    (z, Begin k :: Begin _ (VS.LinMap Double) _ _) = unD magSqrC (x,y)
+    (z, Begin k :: Begin Double k (Double,Double) Double) = unD magSqrC (x,y)
 
-cosSinProdC'_Begin :: (Double, Double) -> ((Double,Double), ((Double,Double), (Double,Double)))
-cosSinProdC'_Begin (x,y) = (z, tr (toFun (k inl) 1, toFun (k inr) 1))
+cosSinProdC'_Begin :: forall k. IsLinMap k => Proxy k -> (Double, Double) -> ((Double,Double), ((Double,Double), (Double,Double)))
+cosSinProdC'_Begin _ (x,y) =
+  case monObj :: ObjR k (Double,Double) of
+    ObjR -> (z, tr (toFun (k inl) 1, toFun (k inr) 1))
   where
-    (z, Begin k :: Begin _ (VS.LinMap Double) _ _) = unD cosSinProdC (x,y)
-
-test_sqrC'_Begin :: Assertion
-test_sqrC'_Begin = sqrC'_Begin 3 @?= (sqr 3, sqr' 3)
-
-test_magSqrC'_Begin :: Assertion
-test_magSqrC'_Begin = magSqrC'_Begin (3,4) @?= (magSqr (3,4), magSqr' (3,4))
-
-test_cosSinProdC'_Begin :: Assertion
-test_cosSinProdC'_Begin = cosSinProdC'_Begin (3,4) @?= (cosSinProd (3,4), cosSinProd' (3,4))
+    (z, Begin k :: Begin Double k (Double,Double) (Double,Double)) = unD cosSinProdC (x,y)
 
 -- ------------------------------------------------------------------------
 
-main :: IO ()
-main = defaultMain $ testGroup "Tests"
+group1 :: forall k. IsLinMap k => Proxy k -> String -> TestTree
+group1 proxy name = testGroup name
   [ testGroup "LinMap"
-      [ testCase "sqr" test_sqrC'_LinMap
-      , testCase "magSqr" test_magSqrC'_LinMap
-      , testCase "cosSinProd" test_cosSinProdC'_LinMap
+      [ testCase "sqr" $ sqrC'_LinMap proxy 3 @?= (sqr 3, sqr' 3)
+      , testCase "magSqr" $ magSqrC'_LinMap proxy (3,4) @?= (magSqr (3,4), magSqr' (3,4))
+      , testCase "cosSinProd" $ cosSinProdC'_LinMap proxy (3,4) @?= (cosSinProd (3,4), cosSinProd' (3,4))
       ]
   , testGroup "Cont"
-      [ testCase "sqr" test_sqrC'_Cont
-      , testCase "magSqr" test_magSqrC'_Cont
-      , testCase "cosSinProd" test_cosSinProdC'_Cont
+      [ testCase "sqr" $ sqrC'_Cont proxy 3 @?= (sqr 3, sqr' 3)
+      , testCase "magSqr" $ magSqrC'_Cont proxy (3,4) @?= (magSqr (3,4), magSqr' (3,4))
+      , testCase "cosSinProd" $ cosSinProdC'_Cont proxy (3,4) @?= (cosSinProd (3,4), cosSinProd' (3,4))
       ]
   , testGroup "Dual'"
-      [ testCase "sqr" test_sqrC'_Dual'
-      , testCase "magSqr" test_magSqrC'_Dual'
-      , testCase "cosSinProd" test_cosSinProdC'_Dual'
+      [ testCase "sqr" $ sqrC'_Dual' proxy 3 @?= (sqr 3, sqr' 3)
+      , testCase "magSqr" $ magSqrC'_Dual' proxy (3,4) @?= (magSqr (3,4), magSqr' (3,4))
+      , testCase "cosSinProd" $ cosSinProdC'_Dual' proxy (3,4) @?= (cosSinProd (3,4), cosSinProd' (3,4))
       ]
   , testGroup "Begin"
-      [ testCase "sqr" test_sqrC'_Begin
-      , testCase "magSqr" test_magSqrC'_Begin
-      , testCase "cosSinProd" test_cosSinProdC'_Begin
+      [ testCase "sqr" $ sqrC'_Begin proxy 3 @?= (sqr 3, sqr' 3)
+      , testCase "magSqr" $ magSqrC'_Begin proxy (3,4) @?= (magSqr (3,4), magSqr' (3,4))
+      , testCase "cosSinProd" $ cosSinProdC'_Begin proxy (3,4) @?= (cosSinProd (3,4), cosSinProd' (3,4))
       ]
+  ]
+
+main :: IO ()
+main = defaultMain $ testGroup "Tests" $
+  [ group1 (Proxy :: Proxy (VectorSpace.LinMap Double)) "VectorSpace"
+  , group1 (Proxy :: Proxy (DataRep.LinMap Double)) "DataRep"
+  , group1 (Proxy :: Proxy (->⁺)) "AddFun"
   ]
