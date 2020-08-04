@@ -263,14 +263,14 @@ instance (Obj (->⁺) a, Obj (->⁺) b) => Additive (a ->⁺ b) where
 -- ------------------------------------------------------------------------
 
 {-
-HasDotという名前に反して、内積ではなく、双対空間との同型性ではないか?
-* 一般の内積だと dot に inverse が存在するとは限らない
-* 正定値性の要求などがない
-* Dual に対する Scalable のインスタンスの定義時に
-  dot . scale a = (. scale a) . dot
-  が期待されていると思うが、内積だとしたら、複素数上のベクトル空間の場合にはその代わりに
-  dot . scale a = (. scale (conjugate a)) . dot 
-  が成り立つことを期待したい。
+HasDotという名前に反して、内積ではなく双対空間との同型性のみを要求し、正定値性を要求
+しない nondegenerate bilinear form 一般?
+
+Dual に対する Scalable のインスタンスの定義時に
+dot . scale a = (. scale a) . dot
+が期待されていると思うが、内積だとしたら、複素数上のベクトル空間の場合にはその代わりに
+dot . scale a = (. scale (conjugate a)) . dot 
+が成り立つことを期待したい。
 -}
 class (Category k, Obj k s, Obj k u, Additive u) => HasDot k s u where
   dot :: u -> (u `k` s)
