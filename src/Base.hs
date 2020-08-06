@@ -19,7 +19,6 @@ import Data.Foldable
 import Data.Kind
 
 import Data.Functor.Rep
-import Data.Pointed
 
 infixr 0 ->⁺
 infixr 9 .
@@ -337,9 +336,10 @@ instance Zip h => MonoidalI (->) h where
   crossI = zipWith id
   monObjI = ObjR
 
-instance (Representable h, Zip h, Pointed h) => CartesianI (->) h where
+-- "Pointed h" is required in the paper, but it can be dropped if we use "pureRep" instead of "pointed".
+instance (Representable h, Zip h) => CartesianI (->) h where
   exI = tabulate (flip index)
-  replI = point
+  replI = pureRep
 
 -- "Foldable h" is required in the paper, but "Representable h" and "Eq (Rep h)" are required instead.
 inIF :: (Additive a, Representable h, Eq (Rep h)) => h (a -> h a)
@@ -357,7 +357,8 @@ instance (Zip h, forall a. Additive a => Additive (h a)) => MonoidalI (->⁺) h 
   crossI = AddFun . crossI . fmap unAddFun
   monObjI = ObjR
 
-instance (Representable h, Zip h, Pointed h, forall a. Additive a => Additive (h a)) => CartesianI (->⁺) h where
+-- "Pointed h" is required in the paper, but it can be dropped if we use "pureRep" instead of "pointed".
+instance (Representable h, Zip h, forall a. Additive a => Additive (h a)) => CartesianI (->⁺) h where
   exI = fmap AddFun exI
   replI = AddFun replI
 

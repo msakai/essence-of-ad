@@ -34,7 +34,6 @@ module Generalized
 import Prelude hiding ((.), id, zipWith, unzip)
 
 import Data.Functor.Rep
-import Data.Pointed
 
 import Base
 
@@ -517,7 +516,6 @@ instance ( CocartesianI k h
          , Representable h
          , Eq (Rep h)
          , Zip h
-         , Pointed h
          , Foldable h
          , forall a. (Obj k a, Additive a) => Additive (h a)
          , forall a. (Obj k a, HasDot k s a) => HasDot k s (h a)
@@ -529,7 +527,6 @@ instance ( CocartesianI k h
 instance ( CartesianI k h
          , Representable h
          , Zip h
-         , Pointed h
          , Foldable h
          , forall a. (Obj k a, Additive a) => Additive (h a)
          , forall a. (Obj k a, HasDot k s a) => HasDot k s (h a)
