@@ -24,10 +24,12 @@ import Base hiding (Scalable (..))
 
 class (Fractional (Scalar a), Storable (Scalar a), HM.Numeric (Scalar a), Additive a) => VectorSpace a where
   type Scalar a
-  scale :: Scalar a -> a -> a
   dim :: Proxy a -> Int
   toVector :: a -> HM.Vector (Scalar a)
   fromVector :: HM.Vector (Scalar a) -> a
+
+  scale :: Scalar a -> a -> a
+  scale a = fromVector . HM.scale a . toVector
 
 linComb :: VectorSpace a => [(a, Scalar a)] -> a
 linComb xs = foldl' (.+.) zero [scale s a | (a,s) <- xs]
