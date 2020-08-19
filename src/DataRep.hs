@@ -58,7 +58,7 @@ newtype LinMap s a b = LinMap (HM.Matrix s)
 infixr 0 ⊸
 
 data a ⊸ b where
-  LinMap :: (Scalar a ~ Scalar b) => !(HM.Matrix (Scalar a))
+  LinMap :: (Scalar a ~ Scalar b) => !(HM.Matrix (Scalar a)) -> a ⊸ b
 
 と書けると格好良いが、スカラー型の異なるベクトル空間の直積とかで困ったことになる。
 -}
